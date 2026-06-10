@@ -3,8 +3,18 @@ import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { resume as defaultResume } from "@/lib/mock-data";
-import { parseResume, type ParsedResume } from "@/lib/resume.functions";
+import {
+  parseResume,
+  type ParsedResume,
+  type SectionConfidence,
+} from "@/lib/resume.functions";
 import {
   Upload,
   FileText,
@@ -15,10 +25,14 @@ import {
   FolderGit2,
   Trash2,
   Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  CircleAlert,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/resume")({
   head: () => ({ meta: [{ title: "Resume Manager — InterviewAI Pro" }] }),
@@ -26,6 +40,81 @@ export const Route = createFileRoute("/_app/resume")({
 });
 
 type FileMeta = { name: string; sizeKb: number; uploadedAt: Date };
+
+const defaultConfidence: ParsedResume["confidence"] = {
+  name: { score: 1, reason: "Sample data" },
+  title: { score: 1, reason: "Sample data" },
+  skills: { score: 1, reason: "Sample data" },
+  projects: { score: 1, reason: "Sample data" },
+  experience: { score: 1, reason: "Sample data" },
+  education: { score: 1, reason: "Sample data" },
+  certifications: { score: 1, reason: "Sample data" },
+  overall: { score: 1, reason: "Sample data" },
+};
+
+const initialResume: ParsedResume = {
+  ...defaultResume,
+  confidence: defaultConfidence,
+};
+
+function confidenceLevel(score: number): "high" | "medium" | "low" {
+  if (score >= 0.8) return "high";
+  if (score >= 0.5) return "medium";
+  return "low";
+}
+
+function ConfidenceBadge({ c }: { c: SectionConfidence }) {
+  const level = confidenceLevel(c.score);
+  const pct = Math.round(c.score * 100);
+  const styles = {
+    high: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    medium: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    low: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  }[level];
+  const Icon =
+    level === "high" ? CheckCircle2 : level === "medium" ? CircleAlert : AlertTriangle;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium",
+              styles,
+            )}
+          >
+            <Icon className="h-3 w-3" />
+            {pct}%
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">
+          <div className="font-medium capitalize">{level} confidence</div>
+          {c.reason && <div className="text-muted-foreground mt-0.5">{c.reason}</div>}
+          {level !== "high" && (
+            <div className="text-muted-foreground mt-1">
+              Review and edit this section if it looks off.
+            </div>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function uncertainRingClass(c: SectionConfidence) {
+  const level = confidenceLevel(c.score);
+  if (level === "high") return "";
+  if (level === "medium")
+    return "ring-1 ring-amber-500/30 border-amber-500/30";
+  return "ring-1 ring-rose-500/40 border-rose-500/40";
+}
+
+function uncertainItemClass(c: SectionConfidence) {
+  const level = confidenceLevel(c.score);
+  if (level === "high") return "";
+  if (level === "medium") return "border-l-2 border-amber-500/50 pl-2";
+  return "border-l-2 border-rose-500/60 pl-2";
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -43,7 +132,7 @@ function fileToBase64(file: File): Promise<string> {
 function ResumePage() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [resume, setResume] = useState<ParsedResume>(defaultResume);
+  const [resume, setResume] = useState<ParsedResume>(initialResume);
   const [fileMeta, setFileMeta] = useState<FileMeta>({
     name: "resume_alex_morgan_2026.pdf",
     sizeKb: 248,
@@ -51,6 +140,11 @@ function ResumePage() {
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const parse = useServerFn(parseResume);
+
+  const conf = resume.confidence;
+  const uncertainSections = (
+    ["name", "title", "skills", "projects", "experience", "education", "certifications"] as const
+  ).filter((k) => conf[k].score < 0.8);
 
   async function handleFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
@@ -71,7 +165,8 @@ function ResumePage() {
         sizeKb: Math.max(1, Math.round(file.size / 1024)),
         uploadedAt: new Date(),
       });
-      toast.success("Resume parsed and fields auto-filled");
+      const overall = Math.round(parsed.confidence.overall.score * 100);
+      toast.success(`Resume parsed (${overall}% overall confidence)`);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to parse resume");
@@ -149,6 +244,7 @@ function ResumePage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold">{resume.name}</h3>
                 <Badge variant="secondary">Active</Badge>
+                <ConfidenceBadge c={conf.overall} />
               </div>
               <p className="text-sm text-muted-foreground">{resume.title}</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -160,13 +256,31 @@ function ResumePage() {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
+
+          {uncertainSections.length > 0 && (
+            <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-medium text-amber-700 dark:text-amber-400">
+                  Review {uncertainSections.length} uncertain{" "}
+                  {uncertainSections.length === 1 ? "section" : "sections"}
+                </div>
+                <div className="text-muted-foreground mt-0.5 capitalize">
+                  {uncertainSections.join(", ")}
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-4">
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Code2 className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Skills</h3>
+          <Card className={cn("p-5", uncertainRingClass(conf.skills))}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Code2 className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Skills</h3>
+              </div>
+              <ConfidenceBadge c={conf.skills} />
             </div>
             <div className="flex flex-wrap gap-2">
               {resume.skills.map((s) => (
@@ -177,10 +291,13 @@ function ResumePage() {
             </div>
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Award className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Certifications</h3>
+          <Card className={cn("p-5", uncertainRingClass(conf.certifications))}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Certifications</h3>
+              </div>
+              <ConfidenceBadge c={conf.certifications} />
             </div>
             <ul className="space-y-2">
               {resume.certifications.map((c) => (
@@ -192,14 +309,23 @@ function ResumePage() {
             </ul>
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <FolderGit2 className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Projects</h3>
+          <Card className={cn("p-5", uncertainRingClass(conf.projects))}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FolderGit2 className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Projects</h3>
+              </div>
+              <ConfidenceBadge c={conf.projects} />
             </div>
             <div className="space-y-3">
               {resume.projects.map((p) => (
-                <div key={p.name} className="p-3 rounded-lg bg-muted/40">
+                <div
+                  key={p.name}
+                  className={cn(
+                    "p-3 rounded-lg bg-muted/40",
+                    uncertainItemClass(conf.projects),
+                  )}
+                >
                   <div className="text-sm font-medium">{p.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {p.desc}
@@ -209,14 +335,23 @@ function ResumePage() {
             </div>
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Briefcase className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Experience</h3>
+          <Card className={cn("p-5", uncertainRingClass(conf.experience))}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Experience</h3>
+              </div>
+              <ConfidenceBadge c={conf.experience} />
             </div>
             <div className="space-y-3">
               {resume.experience.map((e, i) => (
-                <div key={`${e.company}-${i}`} className="flex justify-between gap-3">
+                <div
+                  key={`${e.company}-${i}`}
+                  className={cn(
+                    "flex justify-between gap-3",
+                    uncertainItemClass(conf.experience),
+                  )}
+                >
                   <div>
                     <div className="text-sm font-medium">{e.role}</div>
                     <div className="text-xs text-muted-foreground">{e.company}</div>
@@ -227,14 +362,25 @@ function ResumePage() {
             </div>
           </Card>
 
-          <Card className="p-5 lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Education</h3>
+          <Card
+            className={cn("p-5 lg:col-span-2", uncertainRingClass(conf.education))}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold">Education</h3>
+              </div>
+              <ConfidenceBadge c={conf.education} />
             </div>
             <div className="space-y-3">
               {resume.education.map((e, i) => (
-                <div key={`${e.school}-${i}`} className="flex justify-between gap-3">
+                <div
+                  key={`${e.school}-${i}`}
+                  className={cn(
+                    "flex justify-between gap-3",
+                    uncertainItemClass(conf.education),
+                  )}
+                >
                   <div>
                     <div className="text-sm font-medium">{e.degree}</div>
                     <div className="text-xs text-muted-foreground">{e.school}</div>
