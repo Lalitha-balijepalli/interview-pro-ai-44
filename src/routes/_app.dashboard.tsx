@@ -97,7 +97,11 @@ function Dashboard() {
             <Link to="/history"><Button variant="ghost" size="sm" className="gap-1">View all <ArrowRight className="h-3 w-3" /></Button></Link>
           </div>
           <div className="divide-y">
-            {interviewHistory.slice(0, 5).map((h) => (
+            {interviewHistory.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                No interviews yet — <Link to="/interview-setup" className="text-primary underline">start your first one</Link>.
+              </div>
+            ) : interviewHistory.slice(0, 5).map((h) => (
               <div key={h.id} className="flex items-center py-3 gap-4">
                 <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">{h.role.charAt(0)}</div>
                 <div className="flex-1 min-w-0">
