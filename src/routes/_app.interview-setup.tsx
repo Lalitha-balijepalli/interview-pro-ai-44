@@ -134,7 +134,18 @@ function Setup() {
             <div className="text-sm text-muted-foreground">Ready to start</div>
             <div className="font-semibold">{role ?? company ?? "Resume-based"} · {diff} · {dur} minutes</div>
           </div>
-          <Link to="/interview-session"><Button size="lg" className="bg-gradient-primary border-0 shadow-elegant gap-2">Begin interview <ArrowRight className="h-4 w-4" /></Button></Link>
+          <Link
+            to="/interview-session"
+            onClick={() =>
+              setCurrentConfig({
+                role: role ?? company ?? "Resume-based",
+                difficulty: diff,
+                durationMin: dur,
+              })
+            }
+          >
+            <Button size="lg" className="bg-gradient-primary border-0 shadow-elegant gap-2">Begin interview <ArrowRight className="h-4 w-4" /></Button>
+          </Link>
         </Card>
       </div>
     </>
