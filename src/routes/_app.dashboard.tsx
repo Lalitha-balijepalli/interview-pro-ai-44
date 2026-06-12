@@ -3,7 +3,8 @@ import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { interviewHistory, performanceTrend, skillProgress } from "@/lib/mock-data";
+import { performanceTrend, skillProgress } from "@/lib/mock-data";
+import { useInterviewHistory } from "@/lib/session-store";
 import { Mic, TrendingUp, Trophy, Target, ArrowRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from "recharts";
 
