@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { interviewHistory } from "@/lib/mock-data";
-import { Search, RotateCcw, FileBarChart } from "lucide-react";
+import { useInterviewHistory } from "@/lib/session-store";
+import { Search, RotateCcw, FileBarChart, Inbox } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_app/history")({
   head: () => ({ meta: [{ title: "Interview History — InterviewAI Pro" }] }),
@@ -14,6 +15,11 @@ export const Route = createFileRoute("/_app/history")({
 });
 
 function History() {
+  const history = useInterviewHistory();
+  const [q, setQ] = useState("");
+  const filtered = history.filter((h) =>
+    `${h.role} ${h.difficulty} ${h.date}`.toLowerCase().includes(q.toLowerCase()),
+  );
   return (
     <>
       <AppHeader title="Interview History" />
@@ -25,7 +31,7 @@ function History() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-9 w-64" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." className="pl-9 w-64" />
           </div>
         </div>
 
@@ -42,7 +48,18 @@ function History() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {interviewHistory.map((h) => (
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                      <Inbox className="h-8 w-8 mb-2 opacity-60" />
+                      <div className="font-medium text-foreground">No interviews yet</div>
+                      <div className="text-xs mt-1">Start your first session to see it here.</div>
+                      <Link to="/interview-setup"><Button size="sm" className="mt-4 bg-gradient-primary border-0">Start interview</Button></Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map((h) => (
                 <TableRow key={h.id}>
                   <TableCell className="text-muted-foreground">{h.date}</TableCell>
                   <TableCell className="font-medium">{h.role}</TableCell>

@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { interviewQuestions } from "@/lib/mock-data";
+import { addInterview, getCurrentConfig } from "@/lib/session-store";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Play, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -97,7 +98,21 @@ function Session() {
                   <Button size="icon" variant="secondary" className="rounded-full h-12 w-12" onClick={() => setQIdx((q) => Math.min(q + 1, totalQ - 1))}>
                     →
                   </Button>
-                  <Link to="/reports"><Button size="icon" variant="destructive" className="rounded-full h-12 w-12"><PhoneOff className="h-4 w-4" /></Button></Link>
+                  <Link
+                    to="/reports"
+                    onClick={() => {
+                      const cfg = getCurrentConfig();
+                      const mins = Math.max(1, Math.round(elapsed / 60));
+                      addInterview({
+                        role: cfg?.role ?? "Software Engineer",
+                        difficulty: cfg?.difficulty ?? "Medium",
+                        duration: `${mins} min`,
+                        score: 70 + Math.floor(Math.random() * 26),
+                      });
+                    }}
+                  >
+                    <Button size="icon" variant="destructive" className="rounded-full h-12 w-12"><PhoneOff className="h-4 w-4" /></Button>
+                  </Link>
                 </>
               )}
             </div>
