@@ -21,6 +21,7 @@ const stats = [
 ];
 
 function Dashboard() {
+  const interviewHistory = useInterviewHistory();
   return (
     <>
       <AppHeader title="Dashboard" />
