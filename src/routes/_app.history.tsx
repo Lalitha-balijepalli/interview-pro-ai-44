@@ -15,6 +15,11 @@ export const Route = createFileRoute("/_app/history")({
 });
 
 function History() {
+  const history = useInterviewHistory();
+  const [q, setQ] = useState("");
+  const filtered = history.filter((h) =>
+    `${h.role} ${h.difficulty} ${h.date}`.toLowerCase().includes(q.toLowerCase()),
+  );
   return (
     <>
       <AppHeader title="Interview History" />
@@ -26,7 +31,7 @@ function History() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-9 w-64" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search..." className="pl-9 w-64" />
           </div>
         </div>
 
