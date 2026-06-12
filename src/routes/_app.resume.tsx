@@ -3,6 +3,8 @@ import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +30,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleAlert,
+  Plus,
+  X,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -129,6 +133,12 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+// Mark a section as user-confirmed (100% confidence) whenever it's edited.
+const confirmed = (reason = "Edited by you"): SectionConfidence => ({
+  score: 1,
+  reason,
+});
+
 function ResumePage() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -145,6 +155,19 @@ function ResumePage() {
   const uncertainSections = (
     ["name", "title", "skills", "projects", "experience", "education", "certifications"] as const
   ).filter((k) => conf[k].score < 0.8);
+
+  // Generic patcher — updates a field and marks its section confidence as confirmed.
+  function update<K extends keyof ParsedResume>(
+    key: K,
+    value: ParsedResume[K],
+    confKey: keyof ParsedResume["confidence"] = key as keyof ParsedResume["confidence"],
+  ) {
+    setResume((r) => ({
+      ...r,
+      [key]: value,
+      confidence: { ...r.confidence, [confKey]: confirmed() },
+    }));
+  }
 
   async function handleFile(file: File) {
     if (file.size > 5 * 1024 * 1024) {
@@ -175,6 +198,78 @@ function ResumePage() {
     }
   }
 
+  // --- Skills ---
+  const [skillDraft, setSkillDraft] = useState("");
+  function addSkill() {
+    const v = skillDraft.trim();
+    if (!v) return;
+    if (resume.skills.includes(v)) {
+      setSkillDraft("");
+      return;
+    }
+    update("skills", [...resume.skills, v]);
+    setSkillDraft("");
+  }
+  function removeSkill(s: string) {
+    update("skills", resume.skills.filter((x) => x !== s));
+  }
+
+  // --- Certifications ---
+  const [certDraft, setCertDraft] = useState("");
+  function addCert() {
+    const v = certDraft.trim();
+    if (!v) return;
+    update("certifications", [...resume.certifications, v]);
+    setCertDraft("");
+  }
+  function updateCert(i: number, v: string) {
+    update(
+      "certifications",
+      resume.certifications.map((c, idx) => (idx === i ? v : c)),
+    );
+  }
+  function removeCert(i: number) {
+    update(
+      "certifications",
+      resume.certifications.filter((_, idx) => idx !== i),
+    );
+  }
+
+  // --- Projects / Experience / Education helpers ---
+  function updateList<T>(
+    key: "projects" | "experience" | "education",
+    i: number,
+    patch: Partial<T>,
+  ) {
+    const list = resume[key] as unknown as T[];
+    const next = list.map((item, idx) =>
+      idx === i ? { ...item, ...patch } : item,
+    );
+    update(key, next as ParsedResume[typeof key]);
+  }
+  function removeAt(
+    key: "projects" | "experience" | "education",
+    i: number,
+  ) {
+    const list = resume[key] as unknown as unknown[];
+    update(key, list.filter((_, idx) => idx !== i) as ParsedResume[typeof key]);
+  }
+  function addProject() {
+    update("projects", [...resume.projects, { name: "New project", desc: "" }]);
+  }
+  function addExperience() {
+    update("experience", [
+      ...resume.experience,
+      { role: "Role", company: "Company", period: "" },
+    ]);
+  }
+  function addEducation() {
+    update("education", [
+      ...resume.education,
+      { degree: "Degree", school: "School", period: "" },
+    ]);
+  }
+
   return (
     <>
       <AppHeader title="Resume Manager" />
@@ -183,6 +278,8 @@ function ResumePage() {
           <h2 className="text-2xl font-semibold">Your resume</h2>
           <p className="text-sm text-muted-foreground">
             Upload your resume so the AI can tailor questions to your experience.
+            Click any field to edit it inline — edits mark the section as
+            confirmed.
           </p>
         </div>
 
@@ -240,14 +337,24 @@ function ResumePage() {
             <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
               <FileText className="h-6 w-6" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold">{resume.name}</h3>
+                <Input
+                  value={resume.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  className="h-8 max-w-xs font-semibold"
+                  placeholder="Your name"
+                />
                 <Badge variant="secondary">Active</Badge>
                 <ConfidenceBadge c={conf.overall} />
               </div>
-              <p className="text-sm text-muted-foreground">{resume.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <Input
+                value={resume.title}
+                onChange={(e) => update("title", e.target.value)}
+                className="h-8 max-w-md text-sm"
+                placeholder="Headline / title"
+              />
+              <p className="text-xs text-muted-foreground">
                 {fileMeta.name} · {fileMeta.sizeKb} KB · uploaded{" "}
                 {fileMeta.uploadedAt.toLocaleDateString()}
               </p>
@@ -266,7 +373,7 @@ function ResumePage() {
                   {uncertainSections.length === 1 ? "section" : "sections"}
                 </div>
                 <div className="text-muted-foreground mt-0.5 capitalize">
-                  {uncertainSections.join(", ")}
+                  {uncertainSections.join(", ")} — click any field to fix.
                 </div>
               </div>
             </div>
@@ -274,6 +381,7 @@ function ResumePage() {
         </Card>
 
         <div className="grid lg:grid-cols-2 gap-4">
+          {/* Skills */}
           <Card className={cn("p-5", uncertainRingClass(conf.skills))}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -282,15 +390,45 @@ function ResumePage() {
               </div>
               <ConfidenceBadge c={conf.skills} />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-3">
               {resume.skills.map((s) => (
-                <Badge key={s} variant="secondary">
+                <Badge
+                  key={s}
+                  variant="secondary"
+                  className="gap-1 pr-1"
+                >
                   {s}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(s)}
+                    className="rounded-sm hover:bg-background/60 p-0.5"
+                    aria-label={`Remove ${s}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </Badge>
               ))}
             </div>
+            <div className="flex gap-2">
+              <Input
+                value={skillDraft}
+                onChange={(e) => setSkillDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSkill();
+                  }
+                }}
+                placeholder="Add a skill and press Enter"
+                className="h-8"
+              />
+              <Button size="sm" variant="outline" onClick={addSkill}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </Card>
 
+          {/* Certifications */}
           <Card className={cn("p-5", uncertainRingClass(conf.certifications))}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -299,16 +437,46 @@ function ResumePage() {
               </div>
               <ConfidenceBadge c={conf.certifications} />
             </div>
-            <ul className="space-y-2">
-              {resume.certifications.map((c) => (
-                <li key={c} className="text-sm flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  {c}
+            <ul className="space-y-2 mb-3">
+              {resume.certifications.map((c, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <Input
+                    value={c}
+                    onChange={(e) => updateCert(i, e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeCert(i)}
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </li>
               ))}
             </ul>
+            <div className="flex gap-2">
+              <Input
+                value={certDraft}
+                onChange={(e) => setCertDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCert();
+                  }
+                }}
+                placeholder="Add a certification"
+                className="h-8"
+              />
+              <Button size="sm" variant="outline" onClick={addCert}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </Card>
 
+          {/* Projects */}
           <Card className={cn("p-5", uncertainRingClass(conf.projects))}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -318,23 +486,59 @@ function ResumePage() {
               <ConfidenceBadge c={conf.projects} />
             </div>
             <div className="space-y-3">
-              {resume.projects.map((p) => (
+              {resume.projects.map((p, i) => (
                 <div
-                  key={p.name}
+                  key={i}
                   className={cn(
-                    "p-3 rounded-lg bg-muted/40",
+                    "p-3 rounded-lg bg-muted/40 space-y-2",
                     uncertainItemClass(conf.projects),
                   )}
                 >
-                  <div className="text-sm font-medium">{p.name}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {p.desc}
+                  <div className="flex gap-2 items-start">
+                    <Input
+                      value={p.name}
+                      onChange={(e) =>
+                        updateList<typeof p>("projects", i, {
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder="Project name"
+                      className="h-8 text-sm font-medium"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeAt("projects", i)}
+                      className="h-8 w-8 shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
+                  <Textarea
+                    value={p.desc}
+                    onChange={(e) =>
+                      updateList<typeof p>("projects", i, {
+                        desc: e.target.value,
+                      })
+                    }
+                    placeholder="Short description"
+                    rows={2}
+                    className="text-xs resize-none"
+                  />
                 </div>
               ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addProject}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add project
+              </Button>
             </div>
           </Card>
 
+          {/* Experience */}
           <Card className={cn("p-5", uncertainRingClass(conf.experience))}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -346,22 +550,68 @@ function ResumePage() {
             <div className="space-y-3">
               {resume.experience.map((e, i) => (
                 <div
-                  key={`${e.company}-${i}`}
+                  key={i}
                   className={cn(
-                    "flex justify-between gap-3",
+                    "space-y-2 p-3 rounded-lg bg-muted/40",
                     uncertainItemClass(conf.experience),
                   )}
                 >
-                  <div>
-                    <div className="text-sm font-medium">{e.role}</div>
-                    <div className="text-xs text-muted-foreground">{e.company}</div>
+                  <div className="flex gap-2 items-start">
+                    <Input
+                      value={e.role}
+                      onChange={(ev) =>
+                        updateList<typeof e>("experience", i, {
+                          role: ev.target.value,
+                        })
+                      }
+                      placeholder="Role"
+                      className="h-8 text-sm font-medium"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeAt("experience", i)}
+                      className="h-8 w-8 shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground">{e.period}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={e.company}
+                      onChange={(ev) =>
+                        updateList<typeof e>("experience", i, {
+                          company: ev.target.value,
+                        })
+                      }
+                      placeholder="Company"
+                      className="h-8 text-xs"
+                    />
+                    <Input
+                      value={e.period}
+                      onChange={(ev) =>
+                        updateList<typeof e>("experience", i, {
+                          period: ev.target.value,
+                        })
+                      }
+                      placeholder="2022 — Present"
+                      className="h-8 text-xs"
+                    />
+                  </div>
                 </div>
               ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addExperience}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add experience
+              </Button>
             </div>
           </Card>
 
+          {/* Education */}
           <Card
             className={cn("p-5 lg:col-span-2", uncertainRingClass(conf.education))}
           >
@@ -375,19 +625,60 @@ function ResumePage() {
             <div className="space-y-3">
               {resume.education.map((e, i) => (
                 <div
-                  key={`${e.school}-${i}`}
+                  key={i}
                   className={cn(
-                    "flex justify-between gap-3",
+                    "grid md:grid-cols-[1fr_1fr_180px_auto] gap-2 items-start p-3 rounded-lg bg-muted/40",
                     uncertainItemClass(conf.education),
                   )}
                 >
-                  <div>
-                    <div className="text-sm font-medium">{e.degree}</div>
-                    <div className="text-xs text-muted-foreground">{e.school}</div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">{e.period}</div>
+                  <Input
+                    value={e.degree}
+                    onChange={(ev) =>
+                      updateList<typeof e>("education", i, {
+                        degree: ev.target.value,
+                      })
+                    }
+                    placeholder="Degree"
+                    className="h-8 text-sm font-medium"
+                  />
+                  <Input
+                    value={e.school}
+                    onChange={(ev) =>
+                      updateList<typeof e>("education", i, {
+                        school: ev.target.value,
+                      })
+                    }
+                    placeholder="School"
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    value={e.period}
+                    onChange={(ev) =>
+                      updateList<typeof e>("education", i, {
+                        period: ev.target.value,
+                      })
+                    }
+                    placeholder="2018 — 2022"
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeAt("education", i)}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addEducation}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add education
+              </Button>
             </div>
           </Card>
         </div>
