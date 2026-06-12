@@ -48,7 +48,18 @@ function History() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {interviewHistory.map((h) => (
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                      <Inbox className="h-8 w-8 mb-2 opacity-60" />
+                      <div className="font-medium text-foreground">No interviews yet</div>
+                      <div className="text-xs mt-1">Start your first session to see it here.</div>
+                      <Link to="/interview-setup"><Button size="sm" className="mt-4 bg-gradient-primary border-0">Start interview</Button></Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map((h) => (
                 <TableRow key={h.id}>
                   <TableCell className="text-muted-foreground">{h.date}</TableCell>
                   <TableCell className="font-medium">{h.role}</TableCell>
