@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { interviewQuestions } from "@/lib/mock-data";
+import { addInterview, getCurrentConfig } from "@/lib/session-store";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Play, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 
