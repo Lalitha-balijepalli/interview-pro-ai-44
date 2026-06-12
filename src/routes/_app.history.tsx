@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { interviewHistory } from "@/lib/mock-data";
-import { Search, RotateCcw, FileBarChart } from "lucide-react";
+import { useInterviewHistory } from "@/lib/session-store";
+import { Search, RotateCcw, FileBarChart, Inbox } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_app/history")({
   head: () => ({ meta: [{ title: "Interview History — InterviewAI Pro" }] }),
