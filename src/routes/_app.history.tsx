@@ -75,7 +75,11 @@ function History() {
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Link to="/reports"><Button variant="ghost" size="sm" className="gap-1"><FileBarChart className="h-3.5 w-3.5" />Report</Button></Link>
-                    <Link to="/interview-setup"><Button variant="ghost" size="sm" className="gap-1"><RotateCcw className="h-3.5 w-3.5" />Retake</Button></Link>
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                      const mins = parseInt(h.duration);
+                      setCurrentConfig({ role: h.role, difficulty: h.difficulty, durationMin: isNaN(mins) ? 15 : mins });
+                      navigate({ to: "/interview-setup" });
+                    }}><RotateCcw className="h-3.5 w-3.5" />Retake</Button>
                     <Button variant="ghost" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => { if (window.confirm("Delete this interview session?")) removeInterview(h.id); }}><Trash2 className="h-3.5 w-3.5" />Delete</Button>
                   </TableCell>
                 </TableRow>
