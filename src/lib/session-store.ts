@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { interviewHistory as seed } from "./mock-data";
+import { supabase } from "@/integrations/supabase/client";
 
 export type InterviewEntry = {
   id: string;
@@ -10,59 +10,141 @@ export type InterviewEntry = {
   score: number;
 };
 
-const KEY = "interviewai:history";
 const CFG = "interviewai:current";
-const SEEDED = "interviewai:seeded";
 
-function read(): InterviewEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
-    // seed once so the demo isn't empty on first visit
-    if (!localStorage.getItem(SEEDED)) {
-      localStorage.setItem(KEY, JSON.stringify(seed));
-      localStorage.setItem(SEEDED, "1");
-      return seed as InterviewEntry[];
-    }
-    return [];
-  } catch {
-    return [];
-  }
+// ---------- Cross-device history (Lovable Cloud) ----------
+
+type Row = {
+  id: string;
+  date: string;
+  role: string;
+  difficulty: string;
+  duration: string;
+  score: number;
+};
+
+function toEntry(r: Row): InterviewEntry {
+  return {
+    id: r.id,
+    date: r.date,
+    role: r.role,
+    difficulty: r.difficulty,
+    duration: r.duration,
+    score: r.score,
+  };
 }
 
 function emit() {
-  window.dispatchEvent(new Event("interviewai:history-changed"));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("interviewai:history-changed"));
+  }
 }
 
-export function getHistory(): InterviewEntry[] {
-  return read();
+async function fetchHistory(userId: string): Promise<InterviewEntry[]> {
+  const { data, error } = await supabase
+    .from("interviews")
+    .select("id,date,role,difficulty,duration,score")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Failed to load interviews", error);
+    return [];
+  }
+  return (data ?? []).map(toEntry);
 }
 
-export function addInterview(entry: Omit<InterviewEntry, "id" | "date">) {
-  if (typeof window === "undefined") return;
-  const list = read();
-  const next: InterviewEntry = {
-    id: crypto.randomUUID(),
-    date: new Date().toISOString().slice(0, 10),
-    ...entry,
-  };
-  const updated = [next, ...list];
-  localStorage.setItem(KEY, JSON.stringify(updated));
+export function useInterviewHistory() {
+  const [history, setHistory] = useState<InterviewEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load(uid: string | null) {
+      if (!uid) {
+        if (!cancelled) {
+          setHistory([]);
+          setLoading(false);
+        }
+        return;
+      }
+      const list = await fetchHistory(uid);
+      if (!cancelled) {
+        setHistory(list);
+        setLoading(false);
+      }
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user.id ?? null;
+      setUserId(uid);
+      load(uid);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user.id ?? null;
+      setUserId(uid);
+      setLoading(true);
+      load(uid);
+    });
+
+    const onChange = () => {
+      if (userId) {
+        fetchHistory(userId).then((list) => {
+          if (!cancelled) setHistory(list);
+        });
+      }
+    };
+    window.addEventListener("interviewai:history-changed", onChange);
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+      window.removeEventListener("interviewai:history-changed", onChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  return { history, loading, isAuthenticated: !!userId };
+}
+
+export async function addInterview(entry: Omit<InterviewEntry, "id" | "date">) {
+  const { data: sess } = await supabase.auth.getSession();
+  const uid = sess.session?.user.id;
+  if (!uid) return;
+  const { error } = await supabase.from("interviews").insert({
+    user_id: uid,
+    role: entry.role,
+    difficulty: entry.difficulty,
+    duration: entry.duration,
+    score: entry.score,
+  });
+  if (error) {
+    console.error("Failed to save interview", error);
+    return;
+  }
   emit();
 }
 
-export function removeInterview(id: string) {
-  if (typeof window === "undefined") return;
-  const list = read().filter((i) => i.id !== id);
-  localStorage.setItem(KEY, JSON.stringify(list));
+export async function removeInterview(id: string) {
+  const { error } = await supabase.from("interviews").delete().eq("id", id);
+  if (error) {
+    console.error("Failed to delete interview", error);
+    return;
+  }
   emit();
 }
 
-export function clearHistory() {
-  localStorage.removeItem(KEY);
+export async function clearHistory() {
+  const { data: sess } = await supabase.auth.getSession();
+  const uid = sess.session?.user.id;
+  if (!uid) return;
+  await supabase.from("interviews").delete().eq("user_id", uid);
   emit();
 }
+
+// ---------- Current interview config (session-local) ----------
 
 export type CurrentConfig = {
   role: string;
@@ -79,23 +161,8 @@ export function getCurrentConfig(): CurrentConfig | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(CFG);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? (JSON.parse(raw) as CurrentConfig) : null;
   } catch {
     return null;
   }
-}
-
-export function useInterviewHistory() {
-  const [list, setList] = useState<InterviewEntry[]>(() => read());
-  useEffect(() => {
-    const sync = () => setList(read());
-    sync();
-    window.addEventListener("interviewai:history-changed", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("interviewai:history-changed", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-  return list;
 }
