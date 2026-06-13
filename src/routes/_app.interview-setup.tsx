@@ -64,7 +64,7 @@ function Setup() {
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Interview type</h3>
-          <Tabs defaultValue="role">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
               <TabsTrigger value="role">Role Based</TabsTrigger>
               <TabsTrigger value="company">Company Based</TabsTrigger>
