@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_app/history")({
 
 function History() {
   const history = useInterviewHistory();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const filtered = history.filter((h) =>
     `${h.role} ${h.difficulty} ${h.date}`.toLowerCase().includes(q.toLowerCase()),
