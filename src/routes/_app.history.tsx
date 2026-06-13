@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInterviewHistory } from "@/lib/session-store";
-import { Search, RotateCcw, FileBarChart, Inbox } from "lucide-react";
+import { useInterviewHistory, removeInterview } from "@/lib/session-store";
+import { Search, RotateCcw, FileBarChart, Inbox, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_app/history")({
@@ -75,6 +75,7 @@ function History() {
                   <TableCell className="text-right space-x-1">
                     <Link to="/reports"><Button variant="ghost" size="sm" className="gap-1"><FileBarChart className="h-3.5 w-3.5" />Report</Button></Link>
                     <Link to="/interview-setup"><Button variant="ghost" size="sm" className="gap-1"><RotateCcw className="h-3.5 w-3.5" />Retake</Button></Link>
+                    <Button variant="ghost" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => { if (window.confirm("Delete this interview session?")) removeInterview(h.id); }}><Trash2 className="h-3.5 w-3.5" />Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}
