@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInterviewHistory } from "@/lib/session-store";
-import { Search, RotateCcw, FileBarChart, Inbox } from "lucide-react";
+import { useInterviewHistory, removeInterview } from "@/lib/session-store";
+import { Search, RotateCcw, FileBarChart, Inbox, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_app/history")({
