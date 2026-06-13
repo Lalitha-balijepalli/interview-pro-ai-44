@@ -52,6 +52,13 @@ export function addInterview(entry: Omit<InterviewEntry, "id" | "date">) {
   emit();
 }
 
+export function removeInterview(id: string) {
+  if (typeof window === "undefined") return;
+  const list = read().filter((i) => i.id !== id);
+  localStorage.setItem(KEY, JSON.stringify(list));
+  emit();
+}
+
 export function clearHistory() {
   localStorage.removeItem(KEY);
   emit();
