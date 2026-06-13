@@ -32,6 +32,26 @@ function Setup() {
   const [company, setCompany] = useState<string | null>(null);
   const [diff, setDiff] = useState("Medium");
   const [dur, setDur] = useState(15);
+  const [tab, setTab] = useState("role");
+
+  useEffect(() => {
+    const cfg = getCurrentConfig();
+    if (!cfg) return;
+    if (roles.includes(cfg.role)) {
+      setRole(cfg.role);
+      setTab("role");
+    } else if (companies.some((c) => c.name === cfg.role)) {
+      setCompany(cfg.role);
+      setTab("company");
+    } else if (cfg.role === "Resume-based") {
+      setTab("resume");
+    } else {
+      setRole(cfg.role);
+      setTab("role");
+    }
+    if (cfg.difficulty) setDiff(cfg.difficulty);
+    if (cfg.durationMin) setDur(cfg.durationMin);
+  }, [setRole, setCompany, setDiff, setDur, setTab]);
 
   return (
     <>
