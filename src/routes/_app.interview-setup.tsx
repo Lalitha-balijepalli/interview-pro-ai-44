@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { roles, companies } from "@/lib/mock-data";
-import { setCurrentConfig } from "@/lib/session-store";
-import { useState } from "react";
+import { setCurrentConfig, getCurrentConfig } from "@/lib/session-store";
+import { useState, useEffect } from "react";
 import { Zap, Flame, Target, Clock, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,26 @@ function Setup() {
   const [company, setCompany] = useState<string | null>(null);
   const [diff, setDiff] = useState("Medium");
   const [dur, setDur] = useState(15);
+  const [tab, setTab] = useState("role");
+
+  useEffect(() => {
+    const cfg = getCurrentConfig();
+    if (!cfg) return;
+    if (roles.includes(cfg.role)) {
+      setRole(cfg.role);
+      setTab("role");
+    } else if (companies.some((c) => c.name === cfg.role)) {
+      setCompany(cfg.role);
+      setTab("company");
+    } else if (cfg.role === "Resume-based") {
+      setTab("resume");
+    } else {
+      setRole(cfg.role);
+      setTab("role");
+    }
+    if (cfg.difficulty) setDiff(cfg.difficulty);
+    if (cfg.durationMin) setDur(cfg.durationMin);
+  }, [setRole, setCompany, setDiff, setDur, setTab]);
 
   return (
     <>
@@ -44,7 +64,7 @@ function Setup() {
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Interview type</h3>
-          <Tabs defaultValue="role">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
               <TabsTrigger value="role">Role Based</TabsTrigger>
               <TabsTrigger value="company">Company Based</TabsTrigger>

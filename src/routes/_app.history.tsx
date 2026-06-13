@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppHeader } from "@/components/app-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useInterviewHistory, removeInterview } from "@/lib/session-store";
+import { useInterviewHistory, removeInterview, setCurrentConfig } from "@/lib/session-store";
 import { Search, RotateCcw, FileBarChart, Inbox, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_app/history")({
 
 function History() {
   const history = useInterviewHistory();
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const filtered = history.filter((h) =>
     `${h.role} ${h.difficulty} ${h.date}`.toLowerCase().includes(q.toLowerCase()),
@@ -74,7 +75,11 @@ function History() {
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Link to="/reports"><Button variant="ghost" size="sm" className="gap-1"><FileBarChart className="h-3.5 w-3.5" />Report</Button></Link>
-                    <Link to="/interview-setup"><Button variant="ghost" size="sm" className="gap-1"><RotateCcw className="h-3.5 w-3.5" />Retake</Button></Link>
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                      const mins = parseInt(h.duration);
+                      setCurrentConfig({ role: h.role, difficulty: h.difficulty, durationMin: isNaN(mins) ? 15 : mins });
+                      navigate({ to: "/interview-setup" });
+                    }}><RotateCcw className="h-3.5 w-3.5" />Retake</Button>
                     <Button variant="ghost" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => { if (window.confirm("Delete this interview session?")) removeInterview(h.id); }}><Trash2 className="h-3.5 w-3.5" />Delete</Button>
                   </TableCell>
                 </TableRow>
