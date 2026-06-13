@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_app/history")({
 });
 
 function History() {
-  const history = useInterviewHistory();
+  const { history, loading, isAuthenticated } = useInterviewHistory();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const filtered = history.filter((h) =>
@@ -54,9 +54,17 @@ function History() {
                   <TableCell colSpan={6}>
                     <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                       <Inbox className="h-8 w-8 mb-2 opacity-60" />
-                      <div className="font-medium text-foreground">No interviews yet</div>
-                      <div className="text-xs mt-1">Start your first session to see it here.</div>
-                      <Link to="/interview-setup"><Button size="sm" className="mt-4 bg-gradient-primary border-0">Start interview</Button></Link>
+                      <div className="font-medium text-foreground">
+                        {loading ? "Loading…" : !isAuthenticated ? "Sign in to see your history" : "No interviews yet"}
+                      </div>
+                      <div className="text-xs mt-1">
+                        {!isAuthenticated ? "Your interview history syncs across devices once you sign in." : "Start your first session to see it here."}
+                      </div>
+                      {!isAuthenticated ? (
+                        <Link to="/login"><Button size="sm" className="mt-4 bg-gradient-primary border-0">Sign in</Button></Link>
+                      ) : (
+                        <Link to="/interview-setup"><Button size="sm" className="mt-4 bg-gradient-primary border-0">Start interview</Button></Link>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

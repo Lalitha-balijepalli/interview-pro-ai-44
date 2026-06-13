@@ -103,7 +103,7 @@ function Session() {
                     onClick={() => {
                       const cfg = getCurrentConfig();
                       const mins = Math.max(1, Math.round(elapsed / 60));
-                      addInterview({
+                      void addInterview({
                         role: cfg?.role ?? "Software Engineer",
                         difficulty: cfg?.difficulty ?? "Medium",
                         duration: `${mins} min`,
