@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { roles, companies } from "@/lib/mock-data";
-import { setCurrentConfig } from "@/lib/session-store";
-import { useState } from "react";
+import { setCurrentConfig, getCurrentConfig } from "@/lib/session-store";
+import { useState, useEffect } from "react";
 import { Zap, Flame, Target, Clock, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
