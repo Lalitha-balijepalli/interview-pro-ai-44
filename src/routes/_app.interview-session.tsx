@@ -21,6 +21,10 @@ function Session() {
   const [camOn, setCamOn] = useState(true);
   const [qIdx, setQIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [interviewQuestions] = useState<string[]>(() => {
+    const gen = getGeneratedQuestions();
+    return gen && gen.length ? gen : fallbackQuestions;
+  });
 
   useEffect(() => {
     if (!started) return;
