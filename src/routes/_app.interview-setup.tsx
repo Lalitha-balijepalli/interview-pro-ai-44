@@ -279,9 +279,6 @@ function Setup() {
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Duration controls how many AI questions are generated. Adjust the "Number of questions" field above to override.
-          </p>
         </Card>
 
         <Card className="p-5 bg-gradient-card flex items-center justify-between flex-wrap gap-4">
