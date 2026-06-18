@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { roles, companies } from "@/lib/mock-data";
-import { setCurrentConfig, getCurrentConfig } from "@/lib/session-store";
+import { setCurrentConfig, getCurrentConfig, setGeneratedQuestions, clearGeneratedQuestions } from "@/lib/session-store";
+import { generateInterviewQuestions, type ExperienceLevel, type InterviewType } from "@/lib/geminiService";
 import { useState, useEffect } from "react";
-import { Zap, Flame, Target, Clock, ArrowRight, Check } from "lucide-react";
+import { toast } from "sonner";
+import { Zap, Flame, Target, Clock, ArrowRight, Check, Sparkles, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/interview-setup")({
