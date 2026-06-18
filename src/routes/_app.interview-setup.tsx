@@ -38,6 +38,38 @@ function Setup() {
   const [dur, setDur] = useState(15);
   const [tab, setTab] = useState("role");
 
+  // AI question generation state
+  const [aiRole, setAiRole] = useState("");
+  const [aiExperience, setAiExperience] = useState<ExperienceLevel>("1-3 Years");
+  const [aiType, setAiType] = useState<InterviewType>("Technical");
+  const [aiNumber, setAiNumber] = useState(5);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiQuestions, setAiQuestions] = useState<string[] | null>(null);
+
+  async function handleGenerate() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const effectiveRole = aiRole.trim() || role || company || "Software Engineer";
+      const qs = await generateInterviewQuestions({
+        role: effectiveRole,
+        experience: aiExperience,
+        type: aiType,
+        number: aiNumber,
+      });
+      setAiQuestions(qs);
+      setGeneratedQuestions(qs);
+      toast.success(`Generated ${qs.length} questions with AI`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to generate questions";
+      setAiError(msg);
+      toast.error(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   useEffect(() => {
     const cfg = getCurrentConfig();
     if (!cfg) return;
