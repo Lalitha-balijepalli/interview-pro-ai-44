@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { interviewQuestions } from "@/lib/mock-data";
-import { addInterview, getCurrentConfig } from "@/lib/session-store";
+import { interviewQuestions as fallbackQuestions } from "@/lib/mock-data";
+import { addInterview, getCurrentConfig, getGeneratedQuestions } from "@/lib/session-store";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Play, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -21,6 +21,10 @@ function Session() {
   const [camOn, setCamOn] = useState(true);
   const [qIdx, setQIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [interviewQuestions] = useState<string[]>(() => {
+    const gen = getGeneratedQuestions();
+    return gen && gen.length ? gen : fallbackQuestions;
+  });
 
   useEffect(() => {
     if (!started) return;

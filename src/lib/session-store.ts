@@ -166,3 +166,29 @@ export function getCurrentConfig(): CurrentConfig | null {
     return null;
   }
 }
+
+// ---------- Generated questions (session-local) ----------
+
+const QKEY = "interviewai:questions";
+
+export function setGeneratedQuestions(qs: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(QKEY, JSON.stringify(qs));
+}
+
+export function getGeneratedQuestions(): string[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(QKEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearGeneratedQuestions() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(QKEY);
+}

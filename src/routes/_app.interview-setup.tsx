@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { roles, companies } from "@/lib/mock-data";
-import { setCurrentConfig, getCurrentConfig } from "@/lib/session-store";
+import { setCurrentConfig, getCurrentConfig, setGeneratedQuestions, clearGeneratedQuestions } from "@/lib/session-store";
+import { generateInterviewQuestions, type ExperienceLevel, type InterviewType } from "@/lib/geminiService";
 import { useState, useEffect } from "react";
-import { Zap, Flame, Target, Clock, ArrowRight, Check } from "lucide-react";
+import { toast } from "sonner";
+import { Zap, Flame, Target, Clock, ArrowRight, Check, Sparkles, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/interview-setup")({
@@ -33,6 +37,38 @@ function Setup() {
   const [diff, setDiff] = useState("Medium");
   const [dur, setDur] = useState(15);
   const [tab, setTab] = useState("role");
+
+  // AI question generation state
+  const [aiRole, setAiRole] = useState("");
+  const [aiExperience, setAiExperience] = useState<ExperienceLevel>("1-3 Years");
+  const [aiType, setAiType] = useState<InterviewType>("Technical");
+  const [aiNumber, setAiNumber] = useState(5);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiQuestions, setAiQuestions] = useState<string[] | null>(null);
+
+  async function handleGenerate() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const effectiveRole = aiRole.trim() || role || company || "Software Engineer";
+      const qs = await generateInterviewQuestions({
+        role: effectiveRole,
+        experience: aiExperience,
+        type: aiType,
+        number: aiNumber,
+      });
+      setAiQuestions(qs);
+      setGeneratedQuestions(qs);
+      toast.success(`Generated ${qs.length} questions with AI`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to generate questions";
+      setAiError(msg);
+      toast.error(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   useEffect(() => {
     const cfg = getCurrentConfig();
@@ -110,6 +146,99 @@ function Setup() {
               </Card>
             </TabsContent>
           </Tabs>
+        </Card>
+
+        <Card className="p-5 bg-gradient-card border-primary/30">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">AI-generated questions</h3>
+            <Badge variant="secondary" className="ml-2">Powered by Gemini</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Generate tailored interview questions. They'll be used automatically in your next session.
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Job role</label>
+              <Input
+                placeholder={role ?? company ?? "e.g. Frontend Engineer"}
+                value={aiRole}
+                onChange={(e) => setAiRole(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Experience</label>
+              <Select value={aiExperience} onValueChange={(v) => setAiExperience(v as ExperienceLevel)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fresher">Fresher</SelectItem>
+                  <SelectItem value="1-3 Years">1-3 Years</SelectItem>
+                  <SelectItem value="3-5 Years">3-5 Years</SelectItem>
+                  <SelectItem value="5+ Years">5+ Years</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Interview type</label>
+              <Select value={aiType} onValueChange={(v) => setAiType(v as InterviewType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Technical">Technical</SelectItem>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="Behavioral">Behavioral</SelectItem>
+                  <SelectItem value="Mixed">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Number of questions</label>
+              <Input
+                type="number" min={1} max={30}
+                value={aiNumber}
+                onChange={(e) => setAiNumber(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 flex-wrap">
+            <Button onClick={handleGenerate} disabled={aiLoading} className="bg-gradient-primary border-0 gap-2">
+              {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating Questions...</> : <><Sparkles className="h-4 w-4" /> Generate Questions</>}
+            </Button>
+            {aiQuestions && !aiLoading && (
+              <Button variant="ghost" size="sm" onClick={() => { setAiQuestions(null); clearGeneratedQuestions(); toast.message("Cleared generated questions"); }}>
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {aiError && (
+            <div className="mt-4 p-3 rounded-lg border border-destructive/40 bg-destructive/5 flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+              <div className="flex-1 text-sm">
+                <div className="font-medium text-destructive">Couldn't generate questions</div>
+                <div className="text-muted-foreground text-xs mt-0.5">{aiError}</div>
+              </div>
+              <Button size="sm" variant="outline" onClick={handleGenerate} className="gap-1">
+                <RefreshCw className="h-3.5 w-3.5" /> Retry
+              </Button>
+            </div>
+          )}
+
+          {aiQuestions && aiQuestions.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <div className="text-xs text-muted-foreground">
+                {aiQuestions.length} questions ready — they'll be used in your interview session.
+              </div>
+              <div className="max-h-64 overflow-y-auto rounded-lg border bg-background/40 divide-y">
+                {aiQuestions.map((q, i) => (
+                  <div key={i} className="p-3 text-sm flex gap-3">
+                    <span className="text-muted-foreground font-mono text-xs mt-0.5">Q{i + 1}</span>
+                    <span className="flex-1">{q}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
 
         <Card className="p-5">
