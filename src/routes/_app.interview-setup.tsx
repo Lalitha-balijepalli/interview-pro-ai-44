@@ -276,7 +276,6 @@ function Setup() {
               )}>
                 <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
                 <div className="font-semibold">{d.mins} min</div>
-                <div className="text-xs text-muted-foreground">~{d.q} questions</div>
               </button>
             ))}
           </div>
