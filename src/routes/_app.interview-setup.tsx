@@ -86,7 +86,11 @@ function Setup() {
       setTab("role");
     }
     if (cfg.difficulty) setDiff(cfg.difficulty);
-    if (cfg.durationMin) setDur(cfg.durationMin);
+    if (cfg.durationMin) {
+      setDur(cfg.durationMin);
+      const match = durations.find((d) => d.mins === cfg.durationMin);
+      if (match) setAiNumber(match.q);
+    }
   }, [setRole, setCompany, setDiff, setDur, setTab]);
 
   return (
