@@ -86,7 +86,11 @@ function Setup() {
       setTab("role");
     }
     if (cfg.difficulty) setDiff(cfg.difficulty);
-    if (cfg.durationMin) setDur(cfg.durationMin);
+    if (cfg.durationMin) {
+      setDur(cfg.durationMin);
+      const match = durations.find((d) => d.mins === cfg.durationMin);
+      if (match) setAiNumber(match.q);
+    }
   }, [setRole, setCompany, setDiff, setDur, setTab]);
 
   return (
@@ -266,7 +270,7 @@ function Setup() {
           <h3 className="font-semibold mb-4">Duration</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {durations.map((d) => (
-              <button key={d.mins} onClick={() => setDur(d.mins)} className={cn(
+              <button key={d.mins} onClick={() => { setDur(d.mins); setAiNumber(d.q); }} className={cn(
                 "p-4 rounded-xl border text-center transition-all",
                 dur === d.mins ? "border-primary bg-primary/5 shadow-elegant" : "hover:border-primary/40"
               )}>
@@ -276,6 +280,9 @@ function Setup() {
               </button>
             ))}
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Duration controls how many AI questions are generated. Adjust the "Number of questions" field above to override.
+          </p>
         </Card>
 
         <Card className="p-5 bg-gradient-card flex items-center justify-between flex-wrap gap-4">
