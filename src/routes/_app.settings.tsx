@@ -43,6 +43,7 @@ function Settings() {
     });
     setSaving(false);
     if (error) return toast.error(error.message);
+    await refresh();
     toast.success("Profile updated");
   }
 
