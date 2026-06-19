@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/settings")({
 
 function Settings() {
   const { theme, toggle } = useTheme();
-  const { user, loading } = useUser();
+  const { user, loading, refresh } = useUser();
   const [fullName, setFullName] = useState("");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
