@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/theme";
+import { useUser, initialsFrom, displayName } from "@/lib/use-user";
 
 export function AppHeader({ title }: { title: string }) {
   const { theme, toggle } = useTheme();
+  const { user } = useUser();
+  const initials = initialsFrom(displayName(user), user?.email);
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/80 backdrop-blur-xl px-4">
       <SidebarTrigger />
@@ -16,7 +19,7 @@ export function AppHeader({ title }: { title: string }) {
         </Button>
         <Button variant="ghost" size="icon"><Bell className="h-4 w-4" /></Button>
         <Avatar className="h-8 w-8">
-          <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">AM</AvatarFallback>
+          <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
         </Avatar>
       </div>
     </header>
