@@ -192,3 +192,47 @@ export function clearGeneratedQuestions() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(QKEY);
 }
+
+// ---------- Latest interview report (session-local) ----------
+
+export type PerQuestionEvaluation = {
+  question: string;
+  answer: string;
+  score: number;
+  feedback: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  idealAnswer: string;
+};
+
+export type FinalReport = {
+  role: string;
+  difficulty: string;
+  duration: string;
+  date: string;
+  overallScore: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+  breakdown: { label: string; value: number }[];
+  evaluations: PerQuestionEvaluation[];
+};
+
+const RKEY = "interviewai:last-report";
+
+export function saveLatestReport(r: FinalReport) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(RKEY, JSON.stringify(r));
+}
+
+export function getLatestReport(): FinalReport | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(RKEY);
+    return raw ? (JSON.parse(raw) as FinalReport) : null;
+  } catch {
+    return null;
+  }
+}

@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useInterviewHistory } from "@/lib/session-store";
+import { useInterviewHistory, getLatestReport, type FinalReport } from "@/lib/session-store";
 import { Download, Share2, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Report — InterviewAI Pro" }] }),
@@ -15,31 +15,66 @@ export const Route = createFileRoute("/_app/reports")({
 
 function Report() {
   const { history, loading, isAuthenticated } = useInterviewHistory();
+  const [saved, setSaved] = useState<FinalReport | null>(null);
+
+  useEffect(() => {
+    setSaved(getLatestReport());
+    const on = () => setSaved(getLatestReport());
+    window.addEventListener("interviewai:history-changed", on);
+    return () => window.removeEventListener("interviewai:history-changed", on);
+  }, []);
+
+  // Prefer the AI-generated final report (has real evaluations); fall back to
+  // a derived view from the most recent history entry.
   const latest = history[0];
+  const source =
+    saved
+      ? {
+          role: saved.role,
+          difficulty: saved.difficulty,
+          duration: saved.duration,
+          date: saved.date,
+          overall: saved.overallScore,
+          summary: saved.summary,
+          strengths: saved.strengths,
+          weaknesses: saved.weaknesses,
+          recommendations: saved.recommendations,
+          breakdown: saved.breakdown,
+          evaluations: saved.evaluations,
+        }
+      : latest
+        ? (() => {
+            const s = latest.score;
+            const skew = (d: number) => Math.max(0, Math.min(100, s + d));
+            const breakdown = [
+              { label: "Technical Knowledge", value: skew(3) },
+              { label: "Communication", value: skew(-2) },
+              { label: "Confidence", value: skew(-6) },
+              { label: "Problem Solving", value: skew(1) },
+              { label: "Depth", value: skew(-4) },
+              { label: "Clarity", value: skew(5) },
+            ];
+            return {
+              role: latest.role,
+              difficulty: latest.difficulty,
+              duration: latest.duration,
+              date: latest.date,
+              overall: s,
+              summary: "",
+              strengths: breakdown.filter((b) => b.value >= s).map((b) => `Strong ${b.label.toLowerCase()}`),
+              weaknesses: breakdown.filter((b) => b.value < s).map((b) => `Improve ${b.label.toLowerCase()}`),
+              recommendations: [
+                "Practice mock interviews weekly to build consistency.",
+                "Record and review answers to spot filler words.",
+                "Prepare STAR-format stories for behavioral prompts.",
+              ],
+              breakdown,
+              evaluations: [] as FinalReport["evaluations"],
+            };
+          })()
+        : null;
 
-  const report = useMemo(() => {
-    if (!latest) return null;
-    const s = latest.score;
-    const skew = (d: number) => Math.max(0, Math.min(100, s + d));
-    const breakdown = [
-      { label: "Technical Knowledge", value: skew(3) },
-      { label: "Communication", value: skew(-2) },
-      { label: "Confidence", value: skew(-6) },
-      { label: "Problem Solving", value: skew(1) },
-      { label: "Eye Contact", value: skew(-9) },
-      { label: "Voice Analysis", value: skew(5) },
-    ];
-    const strengths = breakdown.filter((b) => b.value >= s).map((b) => `Strong ${b.label.toLowerCase()}`);
-    const weaknesses = breakdown.filter((b) => b.value < s).map((b) => `Improve ${b.label.toLowerCase()}`);
-    const recommendations = [
-      "Practice mock interviews weekly to build consistency.",
-      "Record and review answers to spot filler words.",
-      "Prepare STAR-format stories for behavioral prompts.",
-    ];
-    return { breakdown, strengths, weaknesses, recommendations };
-  }, [latest]);
-
-  if (!latest || !report) {
+  if (!source) {
     return (
       <>
         <AppHeader title="Interview Report" />
@@ -61,15 +96,15 @@ function Report() {
     );
   }
 
-  const overall = latest.score;
+  const overall = source.overall;
   return (
     <>
       <AppHeader title="Interview Report" />
       <div className="p-6 space-y-6 max-w-6xl">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-2xl font-semibold">{latest.role} · {latest.difficulty}</h2>
-            <p className="text-sm text-muted-foreground">{latest.date} · {latest.duration}</p>
+            <h2 className="text-2xl font-semibold">{source.role} · {source.difficulty}</h2>
+            <p className="text-sm text-muted-foreground">{source.date} · {source.duration}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2"><Share2 className="h-4 w-4" />Share</Button>
@@ -84,27 +119,30 @@ function Report() {
           <Badge variant="secondary" className="mt-3">
             {overall >= 85 ? "Strong performance" : overall >= 70 ? "Solid effort" : "Keep practicing"}
           </Badge>
+          {source.summary && (
+            <p className="mt-4 text-sm text-muted-foreground max-w-2xl mx-auto">{source.summary}</p>
+          )}
         </Card>
 
         <div className="grid lg:grid-cols-3 gap-4">
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3"><ThumbsUp className="h-4 w-4 text-success" /><h3 className="font-semibold">Strengths</h3></div>
-            <ul className="space-y-2">{report.strengths.map(s => <li key={s} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-success mt-1.5" />{s}</li>)}</ul>
+            <ul className="space-y-2">{source.strengths.map((s, i) => <li key={i} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-success mt-1.5" />{s}</li>)}</ul>
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3"><TriangleAlert className="h-4 w-4 text-warning" /><h3 className="font-semibold">Areas to improve</h3></div>
-            <ul className="space-y-2">{report.weaknesses.map(w => <li key={w} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-warning mt-1.5" />{w}</li>)}</ul>
+            <ul className="space-y-2">{source.weaknesses.map((w, i) => <li key={i} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-warning mt-1.5" />{w}</li>)}</ul>
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-3"><Lightbulb className="h-4 w-4 text-primary" /><h3 className="font-semibold">Recommendations</h3></div>
-            <ul className="space-y-2">{report.recommendations.map(r => <li key={r} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5" />{r}</li>)}</ul>
+            <ul className="space-y-2">{source.recommendations.map((r, i) => <li key={i} className="text-sm flex gap-2"><div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5" />{r}</li>)}</ul>
           </Card>
         </div>
 
         <Card className="p-5">
           <h3 className="font-semibold mb-4">Score breakdown</h3>
           <div className="space-y-4">
-            {report.breakdown.map((b) => (
+            {source.breakdown.map((b) => (
               <div key={b.label}>
                 <div className="flex justify-between text-sm mb-1.5">
                   <span>{b.label}</span>
@@ -115,6 +153,24 @@ function Report() {
             ))}
           </div>
         </Card>
+
+        {source.evaluations.length > 0 && (
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Per-question breakdown</h3>
+            <div className="space-y-4">
+              {source.evaluations.map((e, i) => (
+                <div key={i} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="text-sm font-medium">Q{i + 1}. {e.question}</div>
+                    <Badge variant="secondary">{e.score}/100</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-2"><span className="font-medium text-foreground">Your answer:</span> {e.answer || "—"}</div>
+                  <div className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Feedback:</span> {e.feedback}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </>
   );
