@@ -50,7 +50,10 @@ function Session() {
   const [evaluation, setEvaluation] = useState<PerQuestionEvaluation | null>(null);
   const [collected, setCollected] = useState<PerQuestionEvaluation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<null | "transcribe" | "evaluate" | "finalize">(null);
   const recorderRef = useRef<WavRecorder | null>(null);
+  const lastWavRef = useRef<Blob | null>(null);
+  const lastTranscriptRef = useRef<string>("");
 
   const totalQ = questions.length;
   const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
