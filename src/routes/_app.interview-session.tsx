@@ -148,13 +148,10 @@ function Session() {
         await runEvaluate(text);
       } catch (e) {
         console.error(e);
-        const kind: "transcribe" | "evaluate" = stage === "transcribing" ? "transcribe" : "evaluate";
-        // stage is already updated inside run*; determine based on which step threw
-        const actualKind = lastTranscriptRef.current ? "evaluate" : "transcribe";
+        const actualKind: "transcribe" | "evaluate" = lastTranscriptRef.current ? "evaluate" : "transcribe";
         setErrorKind(actualKind);
         setError(friendlyError(actualKind, e));
         setStage("idle");
-        void kind;
       }
     } else {
       try {
