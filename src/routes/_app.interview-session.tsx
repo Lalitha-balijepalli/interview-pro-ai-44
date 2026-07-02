@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { interviewQuestions as fallbackQuestions } from "@/lib/mock-data";
 import {
   addInterview,
@@ -49,7 +50,10 @@ function Session() {
   const [evaluation, setEvaluation] = useState<PerQuestionEvaluation | null>(null);
   const [collected, setCollected] = useState<PerQuestionEvaluation[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<null | "transcribe" | "evaluate" | "finalize">(null);
   const recorderRef = useRef<WavRecorder | null>(null);
+  const lastWavRef = useRef<Blob | null>(null);
+  const lastTranscriptRef = useRef<string>("");
 
   const totalQ = questions.length;
   const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
@@ -68,37 +72,85 @@ function Session() {
     void startInterview({ role, difficulty, questions });
   }
 
-  async function toggleRecord() {
+  function friendlyError(kind: "transcribe" | "evaluate" | "finalize", e: unknown): string {
+    const raw = e instanceof Error ? e.message : String(e ?? "");
+    const lower = raw.toLowerCase();
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    if (offline) return "You appear to be offline. Check your connection and try again.";
+    if (lower.includes("failed to fetch") || lower.includes("networkerror")) {
+      if (kind === "transcribe")
+        return "Couldn't reach the transcription server. Make sure your backend is running and reachable, then retry.";
+      return "Network error while contacting the AI service. Please retry.";
+    }
+    if (lower.includes("rate limit") || raw.includes("429"))
+      return "The AI service is rate-limited right now. Wait a few seconds and retry.";
+    if (lower.includes("credits") || raw.includes("402"))
+      return "AI credits are exhausted. Add credits and retry.";
+    if (kind === "transcribe" && (raw.includes("400") || lower.includes("corrupted") || lower.includes("unsupported")))
+      return "The audio couldn't be transcribed (it may have been silent or too short). Please re-record and try again.";
+    if (kind === "transcribe") return `Transcription failed: ${raw}`;
+    if (kind === "evaluate") return `Couldn't score your answer: ${raw}`;
+    return `Couldn't generate the final report: ${raw}`;
+  }
+
+  function clearError() {
     setError(null);
+    setErrorKind(null);
+  }
+
+  async function runTranscribe(wav: Blob) {
+    setStage("transcribing");
+    const text = await transcribeAudio(wav);
+    lastTranscriptRef.current = text;
+    setTranscript(text);
+    return text;
+  }
+
+  async function runEvaluate(text: string) {
+    setStage("evaluating");
+    const evalResult = await evaluateAnswer({
+      data: { question: questions[qIdx], answer: text, role, difficulty },
+    });
+    const item: PerQuestionEvaluation = {
+      question: questions[qIdx],
+      answer: text,
+      ...evalResult,
+    };
+    setEvaluation(item);
+    setCollected((prev) => [...prev, item]);
+    setStage("reviewing");
+  }
+
+  async function toggleRecord() {
+    clearError();
     if (stage === "recording") {
       const rec = recorderRef.current;
       if (!rec) return;
+      let wav: Blob;
       try {
-        setStage("transcribing");
-        const wav = await rec.stop();
-        recorderRef.current = null;
-        if (wav.size < 2048) {
-          setStage("idle");
-          toast.error("That recording was too short — please try again.");
-          return;
-        }
-        const text = await transcribeAudio(wav);
-        setTranscript(text);
-        setStage("evaluating");
-        const evalResult = await evaluateAnswer({
-          data: { question: questions[qIdx], answer: text, role, difficulty },
-        });
-        const item: PerQuestionEvaluation = {
-          question: questions[qIdx],
-          answer: text,
-          ...evalResult,
-        };
-        setEvaluation(item);
-        setCollected((prev) => [...prev, item]);
-        setStage("reviewing");
+        wav = await rec.stop();
       } catch (e) {
         console.error(e);
-        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setStage("idle");
+        toast.error("Recording failed to stop cleanly. Please try again.");
+        return;
+      } finally {
+        recorderRef.current = null;
+      }
+      if (wav.size < 2048) {
+        setStage("idle");
+        toast.error("That recording was too short — please try again.");
+        return;
+      }
+      lastWavRef.current = wav;
+      try {
+        const text = await runTranscribe(wav);
+        await runEvaluate(text);
+      } catch (e) {
+        console.error(e);
+        const actualKind: "transcribe" | "evaluate" = lastTranscriptRef.current ? "evaluate" : "transcribe";
+        setErrorKind(actualKind);
+        setError(friendlyError(actualKind, e));
         setStage("idle");
       }
     } else {
@@ -108,6 +160,8 @@ function Session() {
         recorderRef.current = rec;
         setTranscript("");
         setEvaluation(null);
+        lastWavRef.current = null;
+        lastTranscriptRef.current = "";
         setStage("recording");
       } catch (e) {
         console.error(e);
@@ -116,11 +170,45 @@ function Session() {
     }
   }
 
+  async function retry() {
+    if (!errorKind) return;
+    clearError();
+    try {
+      if (errorKind === "transcribe") {
+        if (!lastWavRef.current) {
+          toast.error("No recording to retry — please record again.");
+          setStage("idle");
+          return;
+        }
+        const text = await runTranscribe(lastWavRef.current);
+        await runEvaluate(text);
+      } else if (errorKind === "evaluate") {
+        if (!lastTranscriptRef.current) {
+          toast.error("No transcript available — please record again.");
+          setStage("idle");
+          return;
+        }
+        await runEvaluate(lastTranscriptRef.current);
+      } else if (errorKind === "finalize") {
+        await finalize([...collected]);
+      }
+    } catch (e) {
+      console.error(e);
+      const kind = errorKind;
+      setErrorKind(kind);
+      setError(friendlyError(kind, e));
+      setStage(kind === "finalize" ? "reviewing" : "idle");
+    }
+  }
+
   async function nextQuestion() {
     if (qIdx + 1 < totalQ) {
       setQIdx((i) => i + 1);
       setTranscript("");
       setEvaluation(null);
+      lastWavRef.current = null;
+      lastTranscriptRef.current = "";
+      clearError();
       setStage("idle");
     } else {
       await finalize([...collected]);
@@ -128,6 +216,7 @@ function Session() {
   }
 
   async function finalize(items: PerQuestionEvaluation[]) {
+    clearError();
     setStage("finalizing");
     try {
       const report = await generateFinalReport({
@@ -163,7 +252,8 @@ function Session() {
       navigate({ to: "/reports" });
     } catch (e) {
       console.error(e);
-      setError(e instanceof Error ? e.message : "Failed to generate report.");
+      setErrorKind("finalize");
+      setError(friendlyError("finalize", e));
       setStage("reviewing");
     }
   }
@@ -233,7 +323,30 @@ function Session() {
             )}
 
             {error && (
-              <div className="mt-4 text-sm text-destructive">{error}</div>
+              <Alert variant="destructive" className="mt-4 text-left w-full max-w-2xl">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertTitle>
+                  {errorKind === "transcribe"
+                    ? "Transcription failed"
+                    : errorKind === "evaluate"
+                      ? "Scoring failed"
+                      : errorKind === "finalize"
+                        ? "Report generation failed"
+                        : "Something went wrong"}
+                </AlertTitle>
+                <AlertDescription className="mt-1">
+                  <p>{error}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {errorKind && (
+                      <Button size="sm" variant="secondary" onClick={retry} disabled={busy}>
+                        {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                        Retry {errorKind === "transcribe" ? "transcription" : errorKind === "evaluate" ? "scoring" : "report"}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={clearError}>Dismiss</Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
 
             <div className="mt-auto pt-8 flex items-center gap-2">
