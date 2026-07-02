@@ -323,7 +323,30 @@ function Session() {
             )}
 
             {error && (
-              <div className="mt-4 text-sm text-destructive">{error}</div>
+              <Alert variant="destructive" className="mt-4 text-left w-full max-w-2xl">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertTitle>
+                  {errorKind === "transcribe"
+                    ? "Transcription failed"
+                    : errorKind === "evaluate"
+                      ? "Scoring failed"
+                      : errorKind === "finalize"
+                        ? "Report generation failed"
+                        : "Something went wrong"}
+                </AlertTitle>
+                <AlertDescription className="mt-1">
+                  <p>{error}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {errorKind && (
+                      <Button size="sm" variant="secondary" onClick={retry} disabled={busy}>
+                        {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                        Retry {errorKind === "transcribe" ? "transcription" : errorKind === "evaluate" ? "scoring" : "report"}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={clearError}>Dismiss</Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
 
             <div className="mt-auto pt-8 flex items-center gap-2">
