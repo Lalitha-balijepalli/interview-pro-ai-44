@@ -99,6 +99,83 @@ function Report() {
   }
 
   const overall = source.overall;
+
+  function downloadPDF() {
+    try {
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 48;
+      let y = margin;
+
+      const addLine = (text: string, opts: { size?: number; bold?: boolean; color?: [number, number, number]; gap?: number } = {}) => {
+        const { size = 11, bold = false, color = [30, 30, 30], gap = 4 } = opts;
+        doc.setFont("helvetica", bold ? "bold" : "normal");
+        doc.setFontSize(size);
+        doc.setTextColor(color[0], color[1], color[2]);
+        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+        for (const l of lines) {
+          if (y > pageHeight - margin) { doc.addPage(); y = margin; }
+          doc.text(l, margin, y);
+          y += size + gap;
+        }
+      };
+
+      addLine("Interview Report", { size: 22, bold: true, gap: 8 });
+      addLine(`${source.role} · ${source.difficulty}`, { size: 13, bold: true });
+      addLine(`${source.date} · ${source.duration}`, { size: 10, color: [110, 110, 110], gap: 12 });
+
+      addLine(`Overall Score: ${overall}/100`, { size: 16, bold: true, gap: 10 });
+      if (source.summary) addLine(source.summary, { size: 11, gap: 12 });
+
+      addLine("Strengths", { size: 13, bold: true, gap: 6 });
+      source.strengths.forEach((s) => addLine(`• ${s}`));
+      y += 6;
+
+      addLine("Areas to improve", { size: 13, bold: true, gap: 6 });
+      source.weaknesses.forEach((w) => addLine(`• ${w}`));
+      y += 6;
+
+      addLine("Recommendations", { size: 13, bold: true, gap: 6 });
+      source.recommendations.forEach((r) => addLine(`• ${r}`));
+      y += 6;
+
+      addLine("Score breakdown", { size: 13, bold: true, gap: 6 });
+      source.breakdown.forEach((b) => addLine(`${b.label}: ${b.value}/100`));
+
+      if (source.evaluations.length > 0) {
+        y += 8;
+        addLine("Per-question breakdown", { size: 13, bold: true, gap: 8 });
+        source.evaluations.forEach((e, i) => {
+          addLine(`Q${i + 1}. ${e.question}`, { bold: true, gap: 4 });
+          addLine(`Score: ${e.score}/100`, { size: 10, color: [110, 110, 110] });
+          addLine(`Your answer: ${e.answer || "—"}`, { size: 10 });
+          addLine(`Feedback: ${e.feedback}`, { size: 10, gap: 10 });
+        });
+      }
+
+      const filename = `interview-report-${source.role.replace(/\s+/g, "-").toLowerCase()}-${source.date}.pdf`;
+      doc.save(filename);
+      toast.success("Report downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to generate PDF");
+    }
+  }
+
+  async function shareReport() {
+    const text = `Interview Report — ${source!.role} (${source!.difficulty})\nOverall score: ${overall}/100\n${source!.summary || ""}`.trim();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Interview Report", text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast.success("Report summary copied to clipboard");
+      }
+    } catch {
+      /* user cancelled */
+    }
+  }
+
   return (
     <>
       <AppHeader title="Interview Report" />
@@ -109,10 +186,11 @@ function Report() {
             <p className="text-sm text-muted-foreground">{source.date} · {source.duration}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2"><Share2 className="h-4 w-4" />Share</Button>
-            <Button className="bg-gradient-primary border-0 gap-2"><Download className="h-4 w-4" />Download PDF</Button>
+            <Button variant="outline" className="gap-2" onClick={shareReport}><Share2 className="h-4 w-4" />Share</Button>
+            <Button className="bg-gradient-primary border-0 gap-2" onClick={downloadPDF}><Download className="h-4 w-4" />Download PDF</Button>
           </div>
         </div>
+
 
         <Card className="p-8 bg-gradient-card text-center">
           <Trophy className="h-8 w-8 mx-auto text-warning mb-2" />
