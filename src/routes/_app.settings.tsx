@@ -29,6 +29,7 @@ function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [updatingPw, setUpdatingPw] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
