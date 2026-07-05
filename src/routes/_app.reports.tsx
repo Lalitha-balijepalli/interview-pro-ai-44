@@ -162,20 +162,6 @@ function Report() {
     }
   }
 
-  async function shareReport() {
-    const text = `Interview Report — ${source!.role} (${source!.difficulty})\nOverall score: ${overall}/100\n${source!.summary || ""}`.trim();
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Interview Report", text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("Report summary copied to clipboard");
-      }
-    } catch {
-      /* user cancelled */
-    }
-  }
-
   return (
     <>
       <AppHeader title="Interview Report" />
@@ -186,10 +172,10 @@ function Report() {
             <p className="text-sm text-muted-foreground">{source!.date} · {source!.duration}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={shareReport}><Share2 className="h-4 w-4" />Share</Button>
             <Button className="bg-gradient-primary border-0 gap-2" onClick={downloadPDF}><Download className="h-4 w-4" />Download PDF</Button>
           </div>
         </div>
+
 
 
         <Card className="p-8 bg-gradient-card text-center">
