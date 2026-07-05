@@ -114,6 +114,17 @@ function Settings() {
             <Button variant="outline" onClick={updatePassword} disabled={updatingPw || !user}>
               {updatingPw ? "Updating…" : "Update password"}
             </Button>
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-sm font-medium">Sign out</div>
+                  <div className="text-xs text-muted-foreground">End your session on this device.</div>
+                </div>
+                <Button variant="destructive" onClick={handleSignOut} disabled={signingOut || !user} className="gap-2">
+                  <LogOut className="h-4 w-4" />{signingOut ? "Signing out…" : "Sign out"}
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
 
