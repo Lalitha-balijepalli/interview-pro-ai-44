@@ -49,7 +49,12 @@ function Login() {
             <Label htmlFor="password">Password</Label>
             <Link to="/forgot-password" className="text-xs text-primary">Forgot?</Link>
           </div>
-          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <div className="relative">
+            <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+            <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-md" aria-label={showPassword ? "Hide password" : "Show password"}>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
         <Button type="submit" disabled={loading} className="w-full bg-gradient-primary border-0 shadow-elegant">
           {loading ? "Signing in…" : "Sign in"}
