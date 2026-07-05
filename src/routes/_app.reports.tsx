@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { useInterviewHistory, getLatestReport, type FinalReport } from "@/lib/session-store";
 import { Download, Share2, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart } from "lucide-react";
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Report — InterviewAI Pro" }] }),
