@@ -22,11 +22,22 @@ export const Route = createFileRoute("/_app/settings")({
 function Settings() {
   const { theme, toggle } = useTheme();
   const { user, loading, refresh } = useUser();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [updatingPw, setUpdatingPw] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    setSigningOut(false);
+    if (error) return toast.error(error.message);
+    toast.success("Signed out");
+    navigate({ to: "/login", replace: true });
+  }
 
   useEffect(() => {
     if (!user) return;
