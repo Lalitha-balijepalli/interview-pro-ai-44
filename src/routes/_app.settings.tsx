@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/lib/theme";
-import { Moon, Sun, LogOut, Eye, EyeOff } from "lucide-react";
+import { Moon, Sun, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useUser, initialsFrom, displayName, displayTitle } from "@/lib/use-user";
@@ -29,7 +29,6 @@ function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [updatingPw, setUpdatingPw] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -110,22 +109,7 @@ function Settings() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>New password</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
             <Button variant="outline" onClick={updatePassword} disabled={updatingPw || !user}>
               {updatingPw ? "Updating…" : "Update password"}
