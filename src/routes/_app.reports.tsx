@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useInterviewHistory, getLatestReport, type FinalReport } from "@/lib/session-store";
-import { Download, Share2, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart } from "lucide-react";
+import { Download, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart } from "lucide-react";
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
