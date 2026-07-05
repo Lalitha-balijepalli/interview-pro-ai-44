@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/lib/theme";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useUser, initialsFrom, displayName, displayTitle } from "@/lib/use-user";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({ meta: [{ title: "Settings — InterviewAI Pro" }] }),
@@ -21,11 +22,22 @@ export const Route = createFileRoute("/_app/settings")({
 function Settings() {
   const { theme, toggle } = useTheme();
   const { user, loading, refresh } = useUser();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [updatingPw, setUpdatingPw] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const { error } = await supabase.auth.signOut();
+    setSigningOut(false);
+    if (error) return toast.error(error.message);
+    toast.success("Signed out");
+    navigate({ to: "/login", replace: true });
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -102,6 +114,17 @@ function Settings() {
             <Button variant="outline" onClick={updatePassword} disabled={updatingPw || !user}>
               {updatingPw ? "Updating…" : "Update password"}
             </Button>
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-sm font-medium">Sign out</div>
+                  <div className="text-xs text-muted-foreground">End your session on this device.</div>
+                </div>
+                <Button variant="destructive" onClick={handleSignOut} disabled={signingOut || !user} className="gap-2">
+                  <LogOut className="h-4 w-4" />{signingOut ? "Signing out…" : "Sign out"}
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
 
