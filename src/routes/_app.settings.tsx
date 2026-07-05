@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "@/lib/theme";
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun, LogOut, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useUser, initialsFrom, displayName, displayTitle } from "@/lib/use-user";
