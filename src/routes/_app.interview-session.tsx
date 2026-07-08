@@ -391,6 +391,7 @@ function Session() {
 
           {/* Right */}
           <div className="space-y-4">
+            <WebcamMonitor active={started} />
             {evaluation ? (
               <>
                 <Card className="p-5">
