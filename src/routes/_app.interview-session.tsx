@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { interviewQuestions as fallbackQuestions } from "@/lib/mock-data";
+import { WebcamMonitor } from "@/components/webcam-monitor";
 import {
   addInterview,
   getCurrentConfig,
@@ -390,6 +391,7 @@ function Session() {
 
           {/* Right */}
           <div className="space-y-4">
+            <WebcamMonitor active={started} />
             {evaluation ? (
               <>
                 <Card className="p-5">
