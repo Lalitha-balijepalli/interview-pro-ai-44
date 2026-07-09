@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { VideoOff } from "lucide-react";
+import { VideoOff, Loader2 } from "lucide-react";
 
 const DEFAULT_BASE =
   "https://glorious-waffle-r4r5w4rw6xj7f5557-8000.app.github.dev";
@@ -17,47 +17,33 @@ type EmotionResp = { dominant_emotion?: string; scores?: Record<string, number> 
 type AnalysisResp = { attention_score?: number; eye_contact?: string };
 type MonitorResp = { overall_score?: number; status?: string };
 
+type CamStatus = "idle" | "requesting" | "ready" | "error";
+
 interface Props {
   active: boolean;
+  onStream?: (stream: MediaStream | null) => void;
 }
 
-export function WebcamMonitor({ active }: Props) {
+export function WebcamMonitor({ active, onStream }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [status, setStatus] = useState<CamStatus>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [emotion, setEmotion] = useState<EmotionResp | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResp | null>(null);
   const [monitor, setMonitor] = useState<MonitorResp | null>(null);
 
   useEffect(() => {
-    if (!active) return;
-    let cancelled = false;
-
-    async function startCam() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
-        setPermissionError(null);
-        intervalRef.current = setInterval(captureAndSend, 3000);
-      } catch (e) {
-        console.error(e);
-        setPermissionError("Camera permission required for AI monitoring.");
-      }
+    if (!active) {
+      setStatus("idle");
+      return;
     }
+    let cancelled = false;
+    setStatus("requesting");
+    setErrorMsg(null);
 
     async function captureAndSend() {
       const video = videoRef.current;
@@ -96,7 +82,45 @@ export function WebcamMonitor({ active }: Props) {
       if (em) setEmotion(em);
       if (an) setAnalysis(an);
       if (mo) setMonitor(mo);
-      // On failure, last successful values are kept; interval retries in 3s.
+    }
+
+    async function startCam() {
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("getUserMedia not supported in this browser");
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        onStream?.(stream);
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = stream;
+          try {
+            await video.play();
+          } catch (playErr) {
+            console.error("Camera Error (play):", playErr);
+          }
+        }
+        setStatus("ready");
+        intervalRef.current = setInterval(captureAndSend, 3000);
+      } catch (error) {
+        console.error("Camera Error:", error);
+        if (!cancelled) {
+          setErrorMsg(
+            error instanceof Error && error.message
+              ? error.message
+              : "Unable to access camera",
+          );
+          setStatus("error");
+        }
+      }
     }
 
     startCam();
@@ -106,14 +130,24 @@ export function WebcamMonitor({ active }: Props) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        onStream?.(null);
       }
       if (videoRef.current) videoRef.current.srcObject = null;
     };
-  }, [active]);
+  }, [active, onStream]);
 
-  if (!active) return null;
+  if (!active) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <VideoOff className="h-4 w-4" />
+          <span>Webcam monitoring disabled.</span>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -121,15 +155,24 @@ export function WebcamMonitor({ active }: Props) {
         <div className="relative bg-black aspect-video">
           <video
             ref={videoRef}
+            autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-lg"
           />
-          {permissionError && (
+          {status === "requesting" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white p-4 text-center text-xs">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Requesting camera permission...</span>
+              </div>
+            </div>
+          )}
+          {status === "error" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white p-4 text-center text-xs">
               <div className="flex flex-col items-center gap-2">
                 <VideoOff className="h-6 w-6" />
-                <span>{permissionError}</span>
+                <span>Unable to access camera</span>
               </div>
             </div>
           )}
@@ -137,30 +180,20 @@ export function WebcamMonitor({ active }: Props) {
         <canvas ref={canvasRef} className="hidden" />
       </Card>
 
-      {permissionError ? (
+      {status === "error" && errorMsg && (
         <Alert variant="destructive">
-          <AlertDescription>{permissionError}</AlertDescription>
+          <AlertDescription className="text-xs">{errorMsg}</AlertDescription>
         </Alert>
-      ) : (
+      )}
+
+      {status === "ready" && (
         <Card className="p-4 space-y-3">
           <h3 className="font-semibold text-sm">Live AI Analytics</h3>
 
           <div className="grid grid-cols-2 gap-2">
-            <StatCard
-              icon="😊"
-              label="Emotion"
-              value={emotion?.dominant_emotion ?? "—"}
-            />
-            <StatCard
-              icon="👁"
-              label="Eye Contact"
-              value={analysis?.eye_contact ?? "—"}
-            />
-            <StatCard
-              icon="🧠"
-              label="Focus"
-              value={monitor?.status ?? "—"}
-            />
+            <StatCard icon="😊" label="Emotion" value={emotion?.dominant_emotion ?? "—"} />
+            <StatCard icon="👁" label="Eye Contact" value={analysis?.eye_contact ?? "—"} />
+            <StatCard icon="🧠" label="Focus" value={monitor?.status ?? "—"} />
             <StatCard
               icon="⭐"
               label="Overall"
