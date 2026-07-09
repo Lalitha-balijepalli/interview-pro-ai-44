@@ -31,9 +31,12 @@ export function WebcamMonitor({ active, onStream }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isMobile = useIsMobile();
 
   const [status, setStatus] = useState<CamStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [emotion, setEmotion] = useState<EmotionResp | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResp | null>(null);
   const [monitor, setMonitor] = useState<MonitorResp | null>(null);
@@ -46,6 +49,7 @@ export function WebcamMonitor({ active, onStream }: Props) {
     let cancelled = false;
     setStatus("requesting");
     setErrorMsg(null);
+    setIsPermissionDenied(false);
 
     async function captureAndSend() {
       const video = videoRef.current;
