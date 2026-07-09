@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { interviewQuestions as fallbackQuestions } from "@/lib/mock-data";
 import { WebcamMonitor } from "@/components/webcam-monitor";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Video, VideoOff } from "lucide-react";
 import {
   addInterview,
   getCurrentConfig,
@@ -44,6 +47,7 @@ function Session() {
   });
 
   const [started, setStarted] = useState(false);
+  const [webcamEnabled, setWebcamEnabled] = useState(true);
   const [qIdx, setQIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [stage, setStage] = useState<Stage>("idle");
@@ -391,7 +395,18 @@ function Session() {
 
           {/* Right */}
           <div className="space-y-4">
-            <WebcamMonitor active={started} />
+            <Card className="p-3 flex items-center justify-between gap-3">
+              <Label htmlFor="webcam-toggle" className="flex items-center gap-2 text-sm cursor-pointer">
+                {webcamEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                Webcam monitoring
+              </Label>
+              <Switch
+                id="webcam-toggle"
+                checked={webcamEnabled}
+                onCheckedChange={setWebcamEnabled}
+              />
+            </Card>
+            <WebcamMonitor active={started && webcamEnabled} />
             {evaluation ? (
               <>
                 <Card className="p-5">
