@@ -395,7 +395,18 @@ function Session() {
 
           {/* Right */}
           <div className="space-y-4">
-            <WebcamMonitor active={started} />
+            <Card className="p-3 flex items-center justify-between gap-3">
+              <Label htmlFor="webcam-toggle" className="flex items-center gap-2 text-sm cursor-pointer">
+                {webcamEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                Webcam monitoring
+              </Label>
+              <Switch
+                id="webcam-toggle"
+                checked={webcamEnabled}
+                onCheckedChange={setWebcamEnabled}
+              />
+            </Card>
+            <WebcamMonitor active={started && webcamEnabled} />
             {evaluation ? (
               <>
                 <Card className="p-5">
