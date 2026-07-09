@@ -119,6 +119,12 @@ export function WebcamMonitor({ active, onStream }: Props) {
       } catch (error) {
         console.error("Camera Error:", error);
         if (!cancelled) {
+          const name = error instanceof Error ? error.name : "";
+          const denied =
+            name === "NotAllowedError" ||
+            name === "SecurityError" ||
+            name === "PermissionDeniedError";
+          setIsPermissionDenied(denied);
           setErrorMsg(
             error instanceof Error && error.message
               ? error.message
