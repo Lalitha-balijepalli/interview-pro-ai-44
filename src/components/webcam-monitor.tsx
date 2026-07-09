@@ -148,15 +148,24 @@ export function WebcamMonitor({ active, onStream }: Props) {
       }
       if (videoRef.current) videoRef.current.srcObject = null;
     };
-  }, [active, onStream]);
+  }, [active, onStream, retryKey]);
 
   if (!active) {
     return (
-      <Card className="p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <VideoOff className="h-4 w-4" />
-          <span>Webcam monitoring disabled.</span>
+      <Card className="p-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <VideoOff className="h-4 w-4 text-muted-foreground" />
+          <span>Webcam monitoring is off</span>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          No problem — your interview still runs normally.
+          <span className="inline-flex items-center gap-1 ml-1">
+            <Mic className="h-3 w-3" /> Voice recording, transcription and AI scoring keep working.
+          </span>
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Turn the toggle above back on any time to enable live emotion, eye-contact and focus analytics.
+        </p>
       </Card>
     );
   }
@@ -181,10 +190,10 @@ export function WebcamMonitor({ active, onStream }: Props) {
             </div>
           )}
           {status === "error" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white p-4 text-center text-xs">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white p-4 text-center text-xs">
               <div className="flex flex-col items-center gap-2">
                 <VideoOff className="h-6 w-6" />
-                <span>Unable to access camera</span>
+                <span>Camera unavailable</span>
               </div>
             </div>
           )}
@@ -192,11 +201,51 @@ export function WebcamMonitor({ active, onStream }: Props) {
         <canvas ref={canvasRef} className="hidden" />
       </Card>
 
-      {status === "error" && errorMsg && (
+      {status === "error" && (
         <Alert variant="destructive">
-          <AlertDescription className="text-xs">{errorMsg}</AlertDescription>
+          <Camera className="h-4 w-4" />
+          <AlertDescription className="text-xs space-y-2">
+            <p className="font-medium">
+              {isPermissionDenied
+                ? "Camera permission is blocked"
+                : "Couldn't start the camera"}
+            </p>
+            {isPermissionDenied ? (
+              isMobile ? (
+                <ol className="list-decimal list-inside space-y-1 opacity-90">
+                  <li className="flex items-start gap-1">
+                    <Smartphone className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>Tap the <b>lock/︙ menu</b> in your browser's address bar.</span>
+                  </li>
+                  <li>Open <b>Site settings</b> → <b>Permissions</b> → <b>Camera</b>.</li>
+                  <li>Set Camera to <b>Allow</b>, then reload this page.</li>
+                  <li>iOS Safari: also check <b>Settings → Safari → Camera</b>.</li>
+                </ol>
+              ) : (
+                <ol className="list-decimal list-inside space-y-1 opacity-90">
+                  <li>Click the <b>camera / lock icon</b> in your browser's address bar.</li>
+                  <li>Set <b>Camera</b> to <b>Allow</b> for this site.</li>
+                  <li>Reload the page, then toggle Webcam monitoring on.</li>
+                </ol>
+              )
+            ) : (
+              <p className="opacity-90">{errorMsg ?? "Please check your camera and try again."}</p>
+            )}
+            <p className="opacity-80">
+              You can keep the interview going without the camera — audio recording and scoring still work.
+            </p>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-1 h-7 gap-1"
+              onClick={() => setRetryKey((k) => k + 1)}
+            >
+              <RefreshCw className="h-3 w-3" /> Try again
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
+
 
       {status === "ready" && (
         <Card className="p-4 space-y-3">
