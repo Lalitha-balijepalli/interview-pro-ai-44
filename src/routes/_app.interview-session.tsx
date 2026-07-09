@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { interviewQuestions as fallbackQuestions } from "@/lib/mock-data";
 import { WebcamMonitor } from "@/components/webcam-monitor";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Video, VideoOff } from "lucide-react";
 import {
   addInterview,
   getCurrentConfig,
