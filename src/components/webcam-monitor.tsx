@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { VideoOff, Loader2 } from "lucide-react";
+import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DEFAULT_BASE =
   "https://glorious-waffle-r4r5w4rw6xj7f5557-8000.app.github.dev";
