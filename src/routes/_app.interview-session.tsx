@@ -47,6 +47,7 @@ function Session() {
   });
 
   const [started, setStarted] = useState(false);
+  const [webcamEnabled, setWebcamEnabled] = useState(true);
   const [qIdx, setQIdx] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [stage, setStage] = useState<Stage>("idle");
