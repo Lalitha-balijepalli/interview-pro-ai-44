@@ -43,6 +43,7 @@ function Report() {
           recommendations: saved.recommendations,
           breakdown: saved.breakdown,
           evaluations: saved.evaluations,
+          mediaAnalytics: saved.mediaAnalytics,
         }
       : latest
         ? (() => {
@@ -72,6 +73,7 @@ function Report() {
               ],
               breakdown,
               evaluations: [] as FinalReport["evaluations"],
+              mediaAnalytics: undefined as MediaAnalyticsSummary | undefined,
             };
           })()
         : null;
