@@ -460,7 +460,7 @@ function Session() {
                 onCheckedChange={setWebcamEnabled}
               />
             </Card>
-            <WebcamMonitor active={started && webcamEnabled} />
+            <WebcamMonitor active={started && webcamEnabled} onAnalytics={handleAnalytics} />
             {evaluation ? (
               <>
                 <Card className="p-5">
