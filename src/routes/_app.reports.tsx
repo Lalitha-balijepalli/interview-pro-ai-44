@@ -145,6 +145,20 @@ function Report() {
       addLine("Score breakdown", { size: 13, bold: true, gap: 6 });
       source!.breakdown.forEach((b) => addLine(`${b.label}: ${b.value}/100`));
 
+      if (source!.mediaAnalytics && source!.mediaAnalytics.samples > 0) {
+        y += 8;
+        const m = source!.mediaAnalytics;
+        addLine("Video & audio analytics", { size: 13, bold: true, gap: 6 });
+        addLine(`Samples: ${m.samples}`, { size: 10, color: [110, 110, 110] });
+        addLine(`Dominant emotion: ${m.dominantEmotion}`);
+        addLine(`Eye contact: ${m.eyeContact}`);
+        addLine(`Focus: ${m.focus}`);
+        addLine(`Average attention: ${m.avgAttention}%`);
+        addLine(`Monitor score: ${m.avgMonitorScore}/100`);
+      }
+
+
+
       if (source!.evaluations.length > 0) {
         y += 8;
         addLine("Per-question breakdown", { size: 13, bold: true, gap: 8 });
