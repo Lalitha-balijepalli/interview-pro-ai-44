@@ -24,9 +24,14 @@ type CamStatus = "idle" | "requesting" | "ready" | "error";
 interface Props {
   active: boolean;
   onStream?: (stream: MediaStream | null) => void;
+  onAnalytics?: (data: {
+    emotion: EmotionResp | null;
+    analysis: AnalysisResp | null;
+    monitor: MonitorResp | null;
+  }) => void;
 }
 
-export function WebcamMonitor({ active, onStream }: Props) {
+export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -88,6 +93,7 @@ export function WebcamMonitor({ active, onStream }: Props) {
       if (em) setEmotion(em);
       if (an) setAnalysis(an);
       if (mo) setMonitor(mo);
+      if (em || an || mo) onAnalytics?.({ emotion: em, analysis: an, monitor: mo });
     }
 
     async function startCam() {
