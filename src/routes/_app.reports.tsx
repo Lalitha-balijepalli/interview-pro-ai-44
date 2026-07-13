@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useInterviewHistory, getLatestReport, type FinalReport } from "@/lib/session-store";
-import { Download, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart } from "lucide-react";
+import { useInterviewHistory, getLatestReport, type FinalReport, type MediaAnalyticsSummary } from "@/lib/session-store";
+import { Download, ThumbsUp, TriangleAlert, Lightbulb, Trophy, FileBarChart, Smile, Eye, Brain, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ function Report() {
           recommendations: saved.recommendations,
           breakdown: saved.breakdown,
           evaluations: saved.evaluations,
+          mediaAnalytics: saved.mediaAnalytics,
         }
       : latest
         ? (() => {
@@ -72,6 +73,7 @@ function Report() {
               ],
               breakdown,
               evaluations: [] as FinalReport["evaluations"],
+              mediaAnalytics: undefined as MediaAnalyticsSummary | undefined,
             };
           })()
         : null;
@@ -142,6 +144,20 @@ function Report() {
 
       addLine("Score breakdown", { size: 13, bold: true, gap: 6 });
       source!.breakdown.forEach((b) => addLine(`${b.label}: ${b.value}/100`));
+
+      if (source!.mediaAnalytics && source!.mediaAnalytics.samples > 0) {
+        y += 8;
+        const m = source!.mediaAnalytics;
+        addLine("Video & audio analytics", { size: 13, bold: true, gap: 6 });
+        addLine(`Samples: ${m.samples}`, { size: 10, color: [110, 110, 110] });
+        addLine(`Dominant emotion: ${m.dominantEmotion}`);
+        addLine(`Eye contact: ${m.eyeContact}`);
+        addLine(`Focus: ${m.focus}`);
+        addLine(`Average attention: ${m.avgAttention}%`);
+        addLine(`Monitor score: ${m.avgMonitorScore}/100`);
+      }
+
+
 
       if (source!.evaluations.length > 0) {
         y += 8;
@@ -218,6 +234,56 @@ function Report() {
             ))}
           </div>
         </Card>
+
+        {source!.mediaAnalytics && source!.mediaAnalytics.samples > 0 && (
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Video &amp; audio analytics</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Aggregated from {source!.mediaAnalytics.samples} live webcam samples during the interview.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Smile className="h-3.5 w-3.5" /> Dominant emotion</div>
+                <div className="text-lg font-semibold capitalize mt-1">{source!.mediaAnalytics.dominantEmotion}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> Eye contact</div>
+                <div className="text-lg font-semibold capitalize mt-1">{source!.mediaAnalytics.eyeContact}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Brain className="h-3.5 w-3.5" /> Focus</div>
+                <div className="text-lg font-semibold capitalize mt-1">{source!.mediaAnalytics.focus}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Target className="h-3.5 w-3.5" /> Monitor score</div>
+                <div className="text-lg font-semibold mt-1">{source!.mediaAnalytics.avgMonitorScore}/100</div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1.5">
+                <span>Average attention</span>
+                <span className="font-medium">{source!.mediaAnalytics.avgAttention}%</span>
+              </div>
+              <Progress value={source!.mediaAnalytics.avgAttention} />
+            </div>
+            {Object.keys(source!.mediaAnalytics.emotionCounts).length > 0 && (
+              <div className="mt-5">
+                <div className="text-sm font-medium mb-2">Emotion distribution</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(source!.mediaAnalytics.emotionCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([em, count]) => (
+                      <Badge key={em} variant="secondary" className="capitalize">
+                        {em} · {Math.round((count / source!.mediaAnalytics!.samples) * 100)}%
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+
 
         {source!.evaluations.length > 0 && (
           <Card className="p-5">

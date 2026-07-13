@@ -206,6 +206,16 @@ export type PerQuestionEvaluation = {
   idealAnswer: string;
 };
 
+export type MediaAnalyticsSummary = {
+  samples: number;
+  dominantEmotion: string;
+  emotionCounts: Record<string, number>;
+  avgAttention: number;
+  eyeContact: string;
+  focus: string;
+  avgMonitorScore: number;
+};
+
 export type FinalReport = {
   role: string;
   difficulty: string;
@@ -218,6 +228,7 @@ export type FinalReport = {
   recommendations: string[];
   breakdown: { label: string; value: number }[];
   evaluations: PerQuestionEvaluation[];
+  mediaAnalytics?: MediaAnalyticsSummary;
 };
 
 const RKEY = "interviewai:last-report";

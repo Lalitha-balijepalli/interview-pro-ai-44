@@ -17,6 +17,7 @@ import {
   getGeneratedQuestions,
   saveLatestReport,
   type PerQuestionEvaluation,
+  type MediaAnalyticsSummary,
 } from "@/lib/session-store";
 import { WavRecorder } from "@/lib/wav-recorder";
 import { transcribeAudio, startInterview } from "@/lib/interview-api";
@@ -59,6 +60,58 @@ function Session() {
   const recorderRef = useRef<WavRecorder | null>(null);
   const lastWavRef = useRef<Blob | null>(null);
   const lastTranscriptRef = useRef<string>("");
+  const analyticsRef = useRef<{
+    emotionCounts: Record<string, number>;
+    attention: number[];
+    monitorScores: number[];
+    eyeContactCounts: Record<string, number>;
+    focusCounts: Record<string, number>;
+    samples: number;
+  }>({
+    emotionCounts: {},
+    attention: [],
+    monitorScores: [],
+    eyeContactCounts: {},
+    focusCounts: {},
+    samples: 0,
+  });
+
+  function handleAnalytics(data: {
+    emotion: { dominant_emotion?: string } | null;
+    analysis: { attention_score?: number; eye_contact?: string } | null;
+    monitor: { overall_score?: number; status?: string } | null;
+  }) {
+    const a = analyticsRef.current;
+    a.samples += 1;
+    const em = data.emotion?.dominant_emotion;
+    if (em) a.emotionCounts[em] = (a.emotionCounts[em] ?? 0) + 1;
+    if (typeof data.analysis?.attention_score === "number")
+      a.attention.push(data.analysis.attention_score);
+    const ec = data.analysis?.eye_contact;
+    if (ec) a.eyeContactCounts[ec] = (a.eyeContactCounts[ec] ?? 0) + 1;
+    if (typeof data.monitor?.overall_score === "number")
+      a.monitorScores.push(data.monitor.overall_score);
+    const st = data.monitor?.status;
+    if (st) a.focusCounts[st] = (a.focusCounts[st] ?? 0) + 1;
+  }
+
+  function summarizeAnalytics(): MediaAnalyticsSummary | undefined {
+    const a = analyticsRef.current;
+    if (a.samples === 0) return undefined;
+    const topKey = (r: Record<string, number>) =>
+      Object.entries(r).sort((x, y) => y[1] - x[1])[0]?.[0] ?? "—";
+    const avg = (arr: number[]) =>
+      arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+    return {
+      samples: a.samples,
+      dominantEmotion: topKey(a.emotionCounts),
+      emotionCounts: a.emotionCounts,
+      avgAttention: avg(a.attention),
+      eyeContact: topKey(a.eyeContactCounts),
+      focus: topKey(a.focusCounts),
+      avgMonitorScore: avg(a.monitorScores),
+    };
+  }
 
   const totalQ = questions.length;
   const mins = Math.floor(elapsed / 60).toString().padStart(2, "0");
@@ -250,6 +303,7 @@ function Session() {
         recommendations: report.recommendations,
         breakdown: report.breakdown,
         evaluations: items,
+        mediaAnalytics: summarizeAnalytics(),
       });
       await addInterview({ role, difficulty, duration, score: report.overallScore });
       setStage("done");
@@ -406,7 +460,7 @@ function Session() {
                 onCheckedChange={setWebcamEnabled}
               />
             </Card>
-            <WebcamMonitor active={started && webcamEnabled} />
+            <WebcamMonitor active={started && webcamEnabled} onAnalytics={handleAnalytics} />
             {evaluation ? (
               <>
                 <Card className="p-5">
