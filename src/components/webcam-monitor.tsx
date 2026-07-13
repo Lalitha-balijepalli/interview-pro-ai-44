@@ -253,41 +253,10 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       )}
 
 
-      {status === "ready" && (
-        <Card className="p-4 space-y-3">
-          <h3 className="font-semibold text-sm">Live AI Analytics</h3>
-
-          <div className="grid grid-cols-2 gap-2">
-            <StatCard icon="😊" label="Emotion" value={emotion?.dominant_emotion ?? "—"} />
-            <StatCard icon="👁" label="Eye Contact" value={analysis?.eye_contact ?? "—"} />
-            <StatCard icon="🧠" label="Focus" value={monitor?.status ?? "—"} />
-            <StatCard
-              icon="⭐"
-              label="Overall"
-              value={
-                typeof monitor?.overall_score === "number"
-                  ? `${monitor.overall_score}`
-                  : "—"
-              }
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">🎯 Attention</span>
-              <Badge variant="secondary">
-                {typeof analysis?.attention_score === "number"
-                  ? `${analysis.attention_score}%`
-                  : "—"}
-              </Badge>
-            </div>
-            <Progress value={analysis?.attention_score ?? 0} />
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
+
 
 function StatCard({
   icon,
