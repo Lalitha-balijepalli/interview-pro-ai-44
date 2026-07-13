@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -253,27 +251,6 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       )}
 
 
-    </div>
-  );
-}
-
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border p-2.5 bg-muted/30">
-      <div className="text-xs text-muted-foreground flex items-center gap-1">
-        <span>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <div className="text-sm font-semibold mt-1 truncate capitalize">{value}</div>
     </div>
   );
 }
