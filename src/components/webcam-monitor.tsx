@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -253,58 +251,6 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       )}
 
 
-      {status === "ready" && (
-        <Card className="p-4 space-y-3">
-          <h3 className="font-semibold text-sm">Live AI Analytics</h3>
-
-          <div className="grid grid-cols-2 gap-2">
-            <StatCard icon="😊" label="Emotion" value={emotion?.dominant_emotion ?? "—"} />
-            <StatCard icon="👁" label="Eye Contact" value={analysis?.eye_contact ?? "—"} />
-            <StatCard icon="🧠" label="Focus" value={monitor?.status ?? "—"} />
-            <StatCard
-              icon="⭐"
-              label="Overall"
-              value={
-                typeof monitor?.overall_score === "number"
-                  ? `${monitor.overall_score}`
-                  : "—"
-              }
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">🎯 Attention</span>
-              <Badge variant="secondary">
-                {typeof analysis?.attention_score === "number"
-                  ? `${analysis.attention_score}%`
-                  : "—"}
-              </Badge>
-            </div>
-            <Progress value={analysis?.attention_score ?? 0} />
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border p-2.5 bg-muted/30">
-      <div className="text-xs text-muted-foreground flex items-center gap-1">
-        <span>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <div className="text-sm font-semibold mt-1 truncate capitalize">{value}</div>
     </div>
   );
 }
