@@ -5,8 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const DEFAULT_BASE =
-  "https://glorious-waffle-r4r5w4rw6xj7f5557-8000.app.github.dev";
+const DEFAULT_BASE = "https://backend-d0vy.onrender.com";
 
 function baseUrl(): string {
   const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
