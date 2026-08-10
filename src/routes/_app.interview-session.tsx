@@ -38,14 +38,20 @@ type Stage = "idle" | "recording" | "transcribing" | "evaluating" | "reviewing" 
 
 function Session() {
   const navigate = useNavigate();
-  const cfg = getCurrentConfig();
+
+  // Read session-local config after hydration to avoid SSR/client mismatch.
+  const [cfg, setCfg] = useState<{ role: string; difficulty: string; durationMin: number } | null>(null);
+  useEffect(() => {
+    setCfg(getCurrentConfig());
+  }, []);
   const role = cfg?.role ?? "Software Engineer";
   const difficulty = cfg?.difficulty ?? "Medium";
 
-  const [questions] = useState<string[]>(() => {
+  const [questions, setQuestions] = useState<string[]>(() => fallbackQuestions);
+  useEffect(() => {
     const gen = getGeneratedQuestions();
-    return gen && gen.length ? gen : fallbackQuestions;
-  });
+    if (gen && gen.length) setQuestions(gen);
+  }, []);
 
   const [started, setStarted] = useState(false);
   const [webcamEnabled, setWebcamEnabled] = useState(true);
