@@ -1,6 +1,7 @@
 // Client for the user's FastAPI backend.
 
-const DEFAULT_BASE = "https://backend-d0vy.onrender.com";
+const DEFAULT_BASE =
+  "https://glorious-waffle-r4r5w4rw6xj7f5557-8000.app.github.dev";
 
 function base(): string {
   const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
