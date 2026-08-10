@@ -20,7 +20,7 @@ import {
   type MediaAnalyticsSummary,
 } from "@/lib/session-store";
 import { WavRecorder } from "@/lib/wav-recorder";
-import { transcribeAudio, startInterview } from "@/lib/interview-api";
+import { transcribeAudio, startInterview, pingBackend } from "@/lib/interview-api";
 import { evaluateAnswer, generateFinalReport } from "@/lib/evaluate.functions";
 import {
   Mic, MicOff, PhoneOff, Play, Sparkles, Loader2, ArrowRight,
