@@ -8,10 +8,41 @@ function base(): string {
   return url.replace(/\/+$/, "");
 }
 
+export async function pingBackend(timeoutMs = 90000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`${base()}/`, { method: "GET" });
+      if (res.ok) return true;
+    } catch {
+      /* server likely cold-starting */
+    }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  return false;
+}
+
 export async function transcribeAudio(wav: Blob): Promise<string> {
-  const fd = new FormData();
-  fd.append("file", wav, "answer.wav");
-  const res = await fetch(`${base()}/speech/transcribe`, { method: "POST", body: fd });
+  const attempt = async () => {
+    const fd = new FormData();
+    fd.append("file", wav, "answer.wav");
+    return fetch(`${base()}/speech/transcribe`, { method: "POST", body: fd });
+  };
+
+  let res: Response;
+  try {
+    res = await attempt();
+  } catch {
+    // Cold start / transient network: wake the server, then retry once.
+    const awake = await pingBackend();
+    if (!awake) {
+      throw new Error(
+        "Couldn't reach the transcription server — it may still be starting up. Wait a moment and retry.",
+      );
+    }
+    res = await attempt();
+  }
+
   if (!res.ok) {
     const t = await res.text().catch(() => "");
     throw new Error(`Transcription failed (${res.status}): ${t.slice(0, 200)}`);
@@ -19,6 +50,7 @@ export async function transcribeAudio(wav: Blob): Promise<string> {
   const data = (await res.json()) as { transcription?: string; text?: string };
   return data.transcription ?? data.text ?? "";
 }
+
 
 export async function startInterview(payload: Record<string, unknown> = {}) {
   try {
