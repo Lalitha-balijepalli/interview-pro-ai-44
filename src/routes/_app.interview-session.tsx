@@ -20,7 +20,7 @@ import {
   type MediaAnalyticsSummary,
 } from "@/lib/session-store";
 import { WavRecorder } from "@/lib/wav-recorder";
-import { transcribeAudio, startInterview } from "@/lib/interview-api";
+import { transcribeAudio, startInterview, pingBackend } from "@/lib/interview-api";
 import { evaluateAnswer, generateFinalReport } from "@/lib/evaluate.functions";
 import {
   Mic, MicOff, PhoneOff, Play, Sparkles, Loader2, ArrowRight,
@@ -126,9 +126,17 @@ function Session() {
   async function beginSession() {
     setStarted(true);
     setError(null);
-    // Fire-and-forget: notify FastAPI backend
-    void startInterview({ role, difficulty, questions });
+    // Wake the (possibly sleeping) backend, then notify it the interview began.
+    void (async () => {
+      const awake = await pingBackend();
+      if (!awake) {
+        toast.error("Backend is not responding yet. Transcription may fail until it wakes up.");
+        return;
+      }
+      void startInterview({ role, difficulty, questions });
+    })();
   }
+
 
   function friendlyError(kind: "transcribe" | "evaluate" | "finalize", e: unknown): string {
     const raw = e instanceof Error ? e.message : String(e ?? "");
