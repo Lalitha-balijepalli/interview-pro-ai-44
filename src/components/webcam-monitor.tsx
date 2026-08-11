@@ -5,12 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const DEFAULT_BASE = "https://backend-d0vy.onrender.com/";
+import { analyzeFrame } from "@/lib/vision.functions";
 
-function baseUrl(): string {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  return (env?.VITE_INTERVIEW_API_URL || DEFAULT_BASE).replace(/\/+$/, "");
-}
 
 type EmotionResp = { dominant_emotion?: string; scores?: Record<string, number> };
 type AnalysisResp = { attention_score?: number; eye_contact?: string };
@@ -64,34 +60,29 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
-      const blob: Blob | null = await new Promise((res) =>
-        canvas.toBlob((b) => res(b), "image/jpeg", 0.8),
-      );
-      if (!blob) return;
+      const imageDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      if (!imageDataUrl.startsWith("data:image/")) return;
 
-      const url = baseUrl();
-      const send = async <T,>(path: string): Promise<T | null> => {
-        try {
-          const fd = new FormData();
-          fd.append("file", blob, "frame.jpg");
-          const r = await fetch(`${url}${path}`, { method: "POST", body: fd });
-          if (!r.ok) return null;
-          return (await r.json()) as T;
-        } catch {
-          return null;
-        }
-      };
-
-      const [em, an, mo] = await Promise.all([
-        send<EmotionResp>("/emotion/detect"),
-        send<AnalysisResp>("/analysis/analyze"),
-        send<MonitorResp>("/monitor/live"),
-      ]);
-      if (em) setEmotion(em);
-      if (an) setAnalysis(an);
-      if (mo) setMonitor(mo);
-      if (em || an || mo) onAnalytics?.({ emotion: em, analysis: an, monitor: mo });
+      try {
+        const r = await analyzeFrame({ data: { imageDataUrl } });
+        if (cancelled) return;
+        const em: EmotionResp = { dominant_emotion: r.dominant_emotion };
+        const an: AnalysisResp = {
+          attention_score: r.attention_score,
+          eye_contact: r.eye_contact,
+        };
+        const mo: MonitorResp = { overall_score: r.overall_score, status: r.status };
+        setEmotion(em);
+        setAnalysis(an);
+        setMonitor(mo);
+        onAnalytics?.({ emotion: em, analysis: an, monitor: mo });
+      } catch (e) {
+        // Keep the last successful values; the next tick retries automatically.
+        console.warn("Frame analysis skipped:", e);
+      }
     }
+
+
 
     async function startCam() {
       try {
@@ -118,7 +109,7 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
           }
         }
         setStatus("ready");
-        intervalRef.current = setInterval(captureAndSend, 3000);
+        intervalRef.current = setInterval(captureAndSend, 6000);
       } catch (error) {
         console.error("Camera Error:", error);
         if (!cancelled) {
