@@ -82,11 +82,7 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       }
     }
 
-      if (em) setEmotion(em);
-      if (an) setAnalysis(an);
-      if (mo) setMonitor(mo);
-      if (em || an || mo) onAnalytics?.({ emotion: em, analysis: an, monitor: mo });
-    }
+
 
     async function startCam() {
       try {
