@@ -5,12 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VideoOff, Loader2, Camera, RefreshCw, Mic, Smartphone } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const DEFAULT_BASE = "https://backend-d0vy.onrender.com/";
+import { analyzeFrame } from "@/lib/vision.functions";
 
-function baseUrl(): string {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
-  return (env?.VITE_INTERVIEW_API_URL || DEFAULT_BASE).replace(/\/+$/, "");
-}
 
 type EmotionResp = { dominant_emotion?: string; scores?: Record<string, number> };
 type AnalysisResp = { attention_score?: number; eye_contact?: string };
