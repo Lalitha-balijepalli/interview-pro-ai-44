@@ -109,7 +109,7 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
           }
         }
         setStatus("ready");
-        intervalRef.current = setInterval(captureAndSend, 3000);
+        intervalRef.current = setInterval(captureAndSend, 6000);
       } catch (error) {
         console.error("Camera Error:", error);
         if (!cancelled) {
