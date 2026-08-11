@@ -60,29 +60,28 @@ export function WebcamMonitor({ active, onStream, onAnalytics }: Props) {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
-      const blob: Blob | null = await new Promise((res) =>
-        canvas.toBlob((b) => res(b), "image/jpeg", 0.8),
-      );
-      if (!blob) return;
+      const imageDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      if (!imageDataUrl.startsWith("data:image/")) return;
 
-      const url = baseUrl();
-      const send = async <T,>(path: string): Promise<T | null> => {
-        try {
-          const fd = new FormData();
-          fd.append("file", blob, "frame.jpg");
-          const r = await fetch(`${url}${path}`, { method: "POST", body: fd });
-          if (!r.ok) return null;
-          return (await r.json()) as T;
-        } catch {
-          return null;
-        }
-      };
+      try {
+        const r = await analyzeFrame({ data: { imageDataUrl } });
+        if (cancelled) return;
+        const em: EmotionResp = { dominant_emotion: r.dominant_emotion };
+        const an: AnalysisResp = {
+          attention_score: r.attention_score,
+          eye_contact: r.eye_contact,
+        };
+        const mo: MonitorResp = { overall_score: r.overall_score, status: r.status };
+        setEmotion(em);
+        setAnalysis(an);
+        setMonitor(mo);
+        onAnalytics?.({ emotion: em, analysis: an, monitor: mo });
+      } catch (e) {
+        // Keep the last successful values; the next tick retries automatically.
+        console.warn("Frame analysis skipped:", e);
+      }
+    }
 
-      const [em, an, mo] = await Promise.all([
-        send<EmotionResp>("/emotion/detect"),
-        send<AnalysisResp>("/analysis/analyze"),
-        send<MonitorResp>("/monitor/live"),
-      ]);
       if (em) setEmotion(em);
       if (an) setAnalysis(an);
       if (mo) setMonitor(mo);
