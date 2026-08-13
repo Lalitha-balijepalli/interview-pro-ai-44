@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getAiKey } from "./ai-key.server";
 
 const confidenceSchema = z.object({
   score: z.number().min(0).max(1),
@@ -41,8 +42,7 @@ const inputSchema = z.object({
 export const parseResume = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<ParsedResume> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+    const apiKey = getAiKey();
 
     const binary = atob(data.base64);
     const bytes = new Uint8Array(binary.length);
