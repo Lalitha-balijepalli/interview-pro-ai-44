@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getAiKey } from "./ai-key.server";
 
 const Input = z.object({
   // base64-encoded WAV audio (no data: prefix)
@@ -16,8 +17,7 @@ function b64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
 export const transcribe = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => Input.parse(i))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("AI service is not configured.");
+    const apiKey = getAiKey();
 
     const bytes = b64ToBytes(data.audioBase64);
     if (bytes.byteLength < 2048) {

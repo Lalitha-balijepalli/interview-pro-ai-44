@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getAiKey } from "./ai-key.server";
 
 const Input = z.object({
   // data URL of a JPEG webcam frame
@@ -22,8 +23,7 @@ const clamp = (n: unknown, d: number) => {
 export const analyzeFrame = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => Input.parse(i))
   .handler(async ({ data }): Promise<FrameAnalysis> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("AI service is not configured.");
+    const apiKey = getAiKey();
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
