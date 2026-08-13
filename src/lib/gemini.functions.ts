@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getAiKey } from "./ai-key.server";
 
 const InputSchema = z.object({
   role: z.string().min(1),
@@ -12,7 +11,8 @@ const InputSchema = z.object({
 export const generateInterviewQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = getAiKey();
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("AI service is not configured.");
 
     const prompt = `Generate ${data.number} high-quality interview questions for a ${data.experience} candidate applying for a ${data.role} position. Interview type is ${data.type}. Return only a JSON array of questions (an array of strings), no markdown, no commentary.`;
 

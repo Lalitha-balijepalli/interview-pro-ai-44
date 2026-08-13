@@ -126,8 +126,8 @@ function Session() {
   async function beginSession() {
     setStarted(true);
     setError(null);
+    // Fire-and-forget: notify FastAPI backend
     void startInterview({ role, difficulty, questions });
-
   }
 
   function friendlyError(kind: "transcribe" | "evaluate" | "finalize", e: unknown): string {
@@ -137,8 +137,7 @@ function Session() {
     if (offline) return "You appear to be offline. Check your connection and try again.";
     if (lower.includes("failed to fetch") || lower.includes("networkerror")) {
       if (kind === "transcribe")
-        return "Network error while transcribing your answer. Please retry.";
-
+        return "Couldn't reach the transcription server. Make sure your backend is running and reachable, then retry.";
       return "Network error while contacting the AI service. Please retry.";
     }
     if (lower.includes("rate limit") || raw.includes("429"))

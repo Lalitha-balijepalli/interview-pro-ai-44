@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getAiKey } from "./ai-key.server";
 
 const EvalInput = z.object({
   question: z.string().min(1),
@@ -25,7 +24,8 @@ const FinalInput = z.object({
 });
 
 async function callGemini(system: string, user: string): Promise<string> {
-  const apiKey = getAiKey();
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("AI service is not configured.");
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
